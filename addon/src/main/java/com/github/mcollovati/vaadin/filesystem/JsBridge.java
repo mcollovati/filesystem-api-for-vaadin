@@ -7,6 +7,7 @@ import com.vaadin.flow.dom.Element;
 import java.io.Serializable;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import tools.jackson.core.type.TypeReference;
 
@@ -132,6 +133,81 @@ class JsBridge implements Serializable {
                         .map(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this))
                         .findFirst()
                         .orElseThrow());
+    }
+
+    /**
+     * JS snippet that registers a single handle and returns its metadata.
+     * Expects a {@code handle} variable to be in scope.
+     */
+    private static final String REGISTER_SINGLE_HANDLE = "const id = String(this.__fsApiNextId++);"
+            + "this.__fsApiHandles.set(id, handle);"
+            + "return {id: id, name: handle.name, kind: handle.kind};";
+
+    CompletableFuture<FileSystemFileHandle> getFileHandle(String dirHandleId, String name, GetHandleOptions options) {
+        return executeJs(
+                        "const dir = this.__fsApiHandles.get($0);"
+                                + "const handle = await dir.getFileHandle($1, $2);"
+                                + REGISTER_SINGLE_HANDLE,
+                        dirHandleId,
+                        name,
+                        options)
+                .toCompletableFuture(new TypeReference<HandleInfo>() {})
+                .thenApply(info -> new FileSystemFileHandle(info.id(), info.name(), this));
+    }
+
+    CompletableFuture<FileSystemDirectoryHandle> getDirectoryHandle(
+            String dirHandleId, String name, GetHandleOptions options) {
+        return executeJs(
+                        "const dir = this.__fsApiHandles.get($0);"
+                                + "const handle = await dir.getDirectoryHandle($1, $2);"
+                                + REGISTER_SINGLE_HANDLE,
+                        dirHandleId,
+                        name,
+                        options)
+                .toCompletableFuture(new TypeReference<HandleInfo>() {})
+                .thenApply(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this));
+    }
+
+    CompletableFuture<Void> removeEntry(String dirHandleId, String name, RemoveEntryOptions options) {
+        return executeVoidJs(
+                "const dir = this.__fsApiHandles.get($0);" + "await dir.removeEntry($1, $2);",
+                dirHandleId,
+                name,
+                options);
+    }
+
+    CompletableFuture<Optional<List<String>>> resolve(String dirHandleId, String childHandleId) {
+        return executeJs(
+                        "const dir = this.__fsApiHandles.get($0);"
+                                + "const child = this.__fsApiHandles.get($1);"
+                                + "const path = await dir.resolve(child);"
+                                + "return path;",
+                        dirHandleId,
+                        childHandleId)
+                .toCompletableFuture(new TypeReference<List<String>>() {})
+                .thenApply(Optional::ofNullable);
+    }
+
+    CompletableFuture<List<FileSystemHandle>> entries(String dirHandleId) {
+        return executeJs(
+                        "const dir = this.__fsApiHandles.get($0);"
+                                + "const result = [];"
+                                + "for await (const [name, handle] of dir.entries()) {"
+                                + "  const id = String(this.__fsApiNextId++);"
+                                + "  this.__fsApiHandles.set(id, handle);"
+                                + "  result.push({id: id, name: handle.name, kind: handle.kind});"
+                                + "}"
+                                + "return result;",
+                        dirHandleId)
+                .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
+                .thenApply(infos -> infos.stream()
+                        .map(info -> {
+                            if ("directory".equals(info.kind())) {
+                                return (FileSystemHandle) new FileSystemDirectoryHandle(info.id(), info.name(), this);
+                            }
+                            return (FileSystemHandle) new FileSystemFileHandle(info.id(), info.name(), this);
+                        })
+                        .toList());
     }
 
     CompletableFuture<FileData> getFile(String handleId) {

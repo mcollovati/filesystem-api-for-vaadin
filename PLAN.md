@@ -173,19 +173,17 @@ detailed sub-plan for that step, and wait for your approval before writing code.
 ### Step 5: FileSystemDirectoryHandle Operations
 **Goal**: Implement directory traversal and manipulation methods.
 
-- [ ] `GetHandleOptions` record: `create` (boolean, default false)
-- [ ] `RemoveEntryOptions` record: `recursive` (boolean, default false)
-- [ ] `FileSystemDirectoryHandle` methods:
+- [x] `GetHandleOptions` record: `create` (boolean, default false)
+- [x] `RemoveEntryOptions` record: `recursive` (boolean, default false)
+- [x] `FileSystemDirectoryHandle` methods:
   - `getFileHandle(String name, GetHandleOptions options)` -> `CompletableFuture<FileSystemFileHandle>`
   - `getDirectoryHandle(String name, GetHandleOptions options)` -> `CompletableFuture<FileSystemDirectoryHandle>`
   - `removeEntry(String name, RemoveEntryOptions options)` -> `CompletableFuture<Void>`
   - `resolve(FileSystemHandle handle)` -> `CompletableFuture<Optional<List<String>>>`
-  - `entries(SerializableConsumer<List<FileSystemHandle>> callback)` or
-    `entries()` -> `CompletableFuture<List<FileSystemEntry>>` where `FileSystemEntry`
-    holds name + handle
+  - `entries()` -> `CompletableFuture<List<FileSystemHandle>>`
   - Convenience overloads without options
-- [ ] JS module: directory operation functions bridging to server
-- [ ] Unit tests (browserless):
+- [x] JS bridge: directory operation functions
+- [x] Unit tests (browserless):
   - Options records defaults
 - [ ] Integration test (Playwright):
   - OPFS-based test: get root directory, create subdirectory, create file,

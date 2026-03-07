@@ -4,6 +4,7 @@ import com.github.mcollovati.vaadin.filesystem.DirectoryPickerOptions;
 import com.github.mcollovati.vaadin.filesystem.FileData;
 import com.github.mcollovati.vaadin.filesystem.FileSystemAPI;
 import com.github.mcollovati.vaadin.filesystem.FileSystemFileHandle;
+import com.github.mcollovati.vaadin.filesystem.FileSystemHandle;
 import com.github.mcollovati.vaadin.filesystem.FileTypeFilter;
 import com.github.mcollovati.vaadin.filesystem.OpenFilePickerOptions;
 import com.github.mcollovati.vaadin.filesystem.PermissionMode;
@@ -122,8 +123,21 @@ public class FilePickerDemoView extends VerticalLayout {
         var options =
                 DirectoryPickerOptions.builder().mode(PermissionMode.READWRITE).build();
         fs.showDirectoryPicker(options)
-                .thenAccept(handle -> appendLog("Open Directory: " + handle.getName() + " (" + handle.getKind() + ")"))
+                .thenAccept(handle -> {
+                    appendLog("Open Directory: " + handle.getName() + " (" + handle.getKind() + ")");
+                    handle.entries().thenAccept(this::logEntries).exceptionally(this::logError);
+                })
                 .exceptionally(this::logError);
+    }
+
+    private void logEntries(List<FileSystemHandle> entries) {
+        if (entries.isEmpty()) {
+            appendLog("  (empty directory)");
+            return;
+        }
+        for (var entry : entries) {
+            appendLog("  " + entry.getKind() + ": " + entry.getName());
+        }
     }
 
     private void logFileData(FileData fileData) {
