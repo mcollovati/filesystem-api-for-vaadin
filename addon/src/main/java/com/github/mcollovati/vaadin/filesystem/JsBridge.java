@@ -177,6 +177,16 @@ class JsBridge implements Serializable {
                         .orElseThrow()));
     }
 
+    CompletableFuture<FileSystemDirectoryHandle> getOriginPrivateDirectory() {
+        return mapErrors(executeJs(JS_TRY_CATCH.formatted(
+                        """
+                        const handle = await navigator.storage.getDirectory();
+                        """
+                                + REGISTER_SINGLE_HANDLE))
+                .toCompletableFuture(new TypeReference<HandleInfo>() {})
+                .thenApply(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this)));
+    }
+
     CompletableFuture<FileSystemDirectoryHandle> showDirectoryPicker(DirectoryPickerOptions options) {
         return mapErrors(executeJs(
                         JS_TRY_CATCH.formatted(RESOLVE_START_IN
@@ -500,14 +510,17 @@ class JsBridge implements Serializable {
     static FileSystemApiException mapException(Throwable error) {
         String message = error.getMessage();
         if (message != null) {
-            int colonIndex = message.indexOf(':');
-            if (colonIndex > 0) {
-                String errorName = message.substring(0, colonIndex).trim();
+            String remaining = message;
+            while (true) {
+                int colonIndex = remaining.indexOf(':');
+                if (colonIndex <= 0) break;
+                String errorName = remaining.substring(0, colonIndex).trim();
                 ExceptionFactory factory = ERROR_MAP.get(errorName);
                 if (factory != null) {
-                    String errorMessage = message.substring(colonIndex + 1).trim();
+                    String errorMessage = remaining.substring(colonIndex + 1).trim();
                     return factory.create(errorMessage);
                 }
+                remaining = remaining.substring(colonIndex + 1).trim();
             }
         }
         return new FileSystemApiException(message != null ? message : "Unknown File System API error", error);

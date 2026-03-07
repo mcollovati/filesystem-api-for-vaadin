@@ -112,6 +112,21 @@ public final class FileSystemAPIFull implements Serializable {
         return getBridge().showDirectoryPicker(options);
     }
 
+    /**
+     * Returns a handle to the origin private file system (OPFS) root
+     * directory.
+     *
+     * <p>OPFS is a sandboxed file system private to the page's origin,
+     * accessed via {@code navigator.storage.getDirectory()}. Unlike the
+     * picker methods, this does not show a dialog and does not require
+     * user interaction.
+     *
+     * @return a future that completes with the OPFS root directory handle
+     */
+    public CompletableFuture<FileSystemDirectoryHandle> getOriginPrivateDirectory() {
+        return getBridge().getOriginPrivateDirectory();
+    }
+
     JsBridge getBridge() {
         if (bridge == null) {
             bridge = JsBridge.getForComponent(component);
