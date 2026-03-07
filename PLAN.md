@@ -26,6 +26,9 @@ detailed sub-plan for that step, and wait for your approval before writing code.
 
 - **Always ask confirmation before committing.** Show what will be committed and wait for approval.
 - **When starting a new Step**, create a dedicated detailed plan for that step, summarize what will be done, and ask for confirmation or additions before writing any code.
+- **Commit messages** should explain the reasons for the change, not implementation details.
+- **NEVER** add co-authors to commit messages.
+- **All classes must have proper Javadocs.** When updating code, Javadocs must be updated accordingly.
 
 ---
 

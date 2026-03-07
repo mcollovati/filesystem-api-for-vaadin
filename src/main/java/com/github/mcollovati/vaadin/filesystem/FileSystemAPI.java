@@ -2,6 +2,7 @@ package com.github.mcollovati.vaadin.filesystem;
 
 import com.vaadin.flow.component.Component;
 import java.io.Serializable;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -13,10 +14,8 @@ import java.util.concurrent.CompletableFuture;
  *
  * <pre>{@code
  * var fs = new FileSystemAPI(myView);
- * fs.isSupported().thenAccept(supported -> {
- *     if (supported) {
- *         // File System API is available
- *     }
+ * fs.showOpenFilePicker().thenAccept(handles -> {
+ *     // process selected files
  * });
  * }</pre>
  */
@@ -47,6 +46,68 @@ public final class FileSystemAPI implements Serializable {
         return getBridge()
                 .executeJs("return typeof window.showOpenFilePicker === 'function';")
                 .toCompletableFuture(Boolean.class);
+    }
+
+    /**
+     * Shows the browser's open file picker dialog with default options.
+     *
+     * @return a future that completes with the list of selected file
+     *         handles
+     * @see #showOpenFilePicker(OpenFilePickerOptions)
+     */
+    public CompletableFuture<List<FileSystemFileHandle>> showOpenFilePicker() {
+        return showOpenFilePicker(OpenFilePickerOptions.builder().build());
+    }
+
+    /**
+     * Shows the browser's open file picker dialog.
+     *
+     * @param options the picker options
+     * @return a future that completes with the list of selected file
+     *         handles
+     */
+    public CompletableFuture<List<FileSystemFileHandle>> showOpenFilePicker(OpenFilePickerOptions options) {
+        return getBridge().showOpenFilePicker(options);
+    }
+
+    /**
+     * Shows the browser's save file picker dialog with default options.
+     *
+     * @return a future that completes with the selected file handle
+     * @see #showSaveFilePicker(SaveFilePickerOptions)
+     */
+    public CompletableFuture<FileSystemFileHandle> showSaveFilePicker() {
+        return showSaveFilePicker(SaveFilePickerOptions.builder().build());
+    }
+
+    /**
+     * Shows the browser's save file picker dialog.
+     *
+     * @param options the picker options
+     * @return a future that completes with the selected file handle
+     */
+    public CompletableFuture<FileSystemFileHandle> showSaveFilePicker(SaveFilePickerOptions options) {
+        return getBridge().showSaveFilePicker(options);
+    }
+
+    /**
+     * Shows the browser's directory picker dialog with default options.
+     *
+     * @return a future that completes with the selected directory handle
+     * @see #showDirectoryPicker(DirectoryPickerOptions)
+     */
+    public CompletableFuture<FileSystemDirectoryHandle> showDirectoryPicker() {
+        return showDirectoryPicker(DirectoryPickerOptions.builder().build());
+    }
+
+    /**
+     * Shows the browser's directory picker dialog.
+     *
+     * @param options the picker options
+     * @return a future that completes with the selected directory handle
+     */
+    public CompletableFuture<FileSystemDirectoryHandle> showDirectoryPicker(DirectoryPickerOptions options) {
+        return getBridge().showDirectoryPicker(options);
     }
 
     JsBridge getBridge() {

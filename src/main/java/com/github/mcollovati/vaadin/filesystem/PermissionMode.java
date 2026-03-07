@@ -1,5 +1,7 @@
 package com.github.mcollovati.vaadin.filesystem;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Represents the permission mode for a {@link FileSystemHandle}.
  *
@@ -24,6 +26,7 @@ public enum PermissionMode {
      *
      * @return the JS value ({@code "read"} or {@code "readwrite"})
      */
+    @JsonValue
     public String getJsValue() {
         return jsValue;
     }

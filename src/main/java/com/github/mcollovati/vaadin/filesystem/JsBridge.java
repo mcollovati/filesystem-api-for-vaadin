@@ -5,7 +5,9 @@ import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.page.PendingJavaScriptResult;
 import com.vaadin.flow.dom.Element;
 import java.io.Serializable;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import tools.jackson.core.type.TypeReference;
 
 /**
  * Internal bridge between Java and browser JavaScript for File System API
@@ -17,6 +19,25 @@ import java.util.concurrent.CompletableFuture;
  * {@link #getForComponent(Component)}.
  */
 class JsBridge implements Serializable {
+
+    /**
+     * JS snippet that copies the options parameter ($0) and resolves
+     * {@code startIn} if it refers to a registered handle.
+     */
+    private static final String RESOLVE_START_IN =
+            "const opts = Object.assign({}, $0);" + "if (opts.startIn && this.__fsApiHandles.has(opts.startIn)) {"
+                    + "  opts.startIn = this.__fsApiHandles.get(opts.startIn);" + "}";
+
+    /**
+     * JS snippet that registers an array of handles into the registry and
+     * returns their metadata. Expects a {@code handles} variable to be in
+     * scope.
+     */
+    private static final String REGISTER_HANDLES = "return handles.map(h => {"
+            + "  const id = String(this.__fsApiNextId++);"
+            + "  this.__fsApiHandles.set(id, h);"
+            + "  return {id: id, name: h.name, kind: h.kind};"
+            + "});";
 
     private final Component component;
     private boolean initialized;
@@ -76,6 +97,40 @@ class JsBridge implements Serializable {
                         mode.getJsValue())
                 .toCompletableFuture(String.class)
                 .thenApply(PermissionState::fromJsValue);
+    }
+
+    CompletableFuture<List<FileSystemFileHandle>> showOpenFilePicker(OpenFilePickerOptions options) {
+        return executeJs(
+                        RESOLVE_START_IN + "const handles = await window.showOpenFilePicker(opts);" + REGISTER_HANDLES,
+                        options)
+                .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
+                .thenApply(infos -> infos.stream()
+                        .map(info -> new FileSystemFileHandle(info.id(), info.name(), this))
+                        .toList());
+    }
+
+    CompletableFuture<FileSystemFileHandle> showSaveFilePicker(SaveFilePickerOptions options) {
+        return executeJs(
+                        RESOLVE_START_IN + "const handles = [await window.showSaveFilePicker(opts)];"
+                                + REGISTER_HANDLES,
+                        options)
+                .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
+                .thenApply(infos -> infos.stream()
+                        .map(info -> new FileSystemFileHandle(info.id(), info.name(), this))
+                        .findFirst()
+                        .orElseThrow());
+    }
+
+    CompletableFuture<FileSystemDirectoryHandle> showDirectoryPicker(DirectoryPickerOptions options) {
+        return executeJs(
+                        RESOLVE_START_IN + "const handles = [await window.showDirectoryPicker(opts)];"
+                                + REGISTER_HANDLES,
+                        options)
+                .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
+                .thenApply(infos -> infos.stream()
+                        .map(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this))
+                        .findFirst()
+                        .orElseThrow());
     }
 
     void releaseHandle(String handleId) {
