@@ -34,6 +34,7 @@ public class MainLayout extends AppLayout {
         nav.addItem(new SideNavItem("Read File", ReadFileDemoView.class));
         nav.addItem(new SideNavItem("Write File", WriteFileDemoView.class));
         nav.addItem(new SideNavItem("Directory", DirectoryDemoView.class));
+        nav.addItem(new SideNavItem("Streaming", StreamingDemoView.class));
         return nav;
     }
 

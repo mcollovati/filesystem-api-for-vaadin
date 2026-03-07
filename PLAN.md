@@ -221,19 +221,18 @@ transfer, avoiding the base64-over-`executeJs` bottleneck.
 (~33% size inflation, entire content in memory). Vaadin's `UploadHandler` and `DownloadHandler`
 use HTTP streaming, which is far more efficient and supports progress tracking.
 
-- [ ] **Upload integration** (`FileSystemFileHandle` → server via `UploadHandler`):
+- [x] **Upload integration** (`FileSystemFileHandle` → server via `UploadHandler`):
   - `FileSystemFileHandle.uploadTo(UploadHandler)` → `CompletableFuture<Void>`
   - JS side: get `File` from handle, build `FormData`, POST to `UploadHandler` endpoint via `fetch()`
   - Server side: `UploadHandler` receives the file as a standard multipart upload
   - Streaming transfer — no base64, no full content in memory
   - Complementary to `getFile()` (which remains for small files / when content is needed in Java)
-- [ ] **Download integration** (server → `FileSystemWritableFileStream` via `DownloadHandler`):
-  - `FileSystemWritableFileStream.writeFrom(DownloadHandler)` → `CompletableFuture<Void>`
-    or `FileSystemFileHandle.downloadFrom(DownloadHandler)` → `CompletableFuture<Void>`
+- [x] **Download integration** (server → `FileSystemWritableFileStream` via `DownloadHandler`):
+  - `FileSystemFileHandle.downloadFrom(DownloadHandler)` → `CompletableFuture<Void>`
   - JS side: `fetch()` the `DownloadHandler` URL, pipe response body into writable stream
   - Supports `DownloadHandler` progress tracking out of the box
   - Complementary to `write(byte[])` (which remains for small payloads)
-- [ ] Update demo view with large-file upload/download examples
+- [x] Update demo view with large-file upload/download examples
 - [ ] Unit tests for integration helper methods
 - [ ] Integration test (OPFS-based): upload file content to server via `UploadHandler`,
   download content from `DownloadHandler` into OPFS file, verify round-trip

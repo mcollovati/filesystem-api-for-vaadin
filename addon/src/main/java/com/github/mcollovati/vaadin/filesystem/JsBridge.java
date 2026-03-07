@@ -4,6 +4,8 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.page.PendingJavaScriptResult;
 import com.vaadin.flow.dom.Element;
+import com.vaadin.flow.server.streams.DownloadHandler;
+import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.shared.Registration;
 import java.io.Serializable;
 import java.util.Base64;
@@ -12,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicLong;
 import tools.jackson.core.type.TypeReference;
 
 /**
@@ -373,6 +376,53 @@ class JsBridge implements Serializable {
                         await w.close();
                         this.__fsApiWritables.delete($0);"""),
                 streamId);
+    }
+
+    private static final AtomicLong ATTR_COUNTER = new AtomicLong();
+
+    CompletableFuture<Void> uploadTo(String handleId, UploadHandler handler) {
+        String attr = "__fsApiUpload_" + ATTR_COUNTER.getAndIncrement();
+        element().setAttribute(attr, handler);
+        return executeVoidJs(
+                        JS_TRY_CATCH.formatted(
+                                """
+                                const h = this.__fsApiHandles.get($0);
+                                const file = await h.getFile();
+                                const formData = new FormData();
+                                formData.append('file', file, file.name);
+                                const url = this.getAttribute($1);
+                                const response = await fetch(url, {method: 'POST', body: formData});
+                                if (!response.ok) {
+                                    throw new Error('NotAllowedError: Upload failed with status ' + response.status);
+                                }"""),
+                        handleId,
+                        attr)
+                .whenComplete((result, error) -> element().removeAttribute(attr));
+    }
+
+    CompletableFuture<Void> downloadFrom(String handleId, DownloadHandler handler) {
+        String attr = "__fsApiDownload_" + ATTR_COUNTER.getAndIncrement();
+        element().setAttribute(attr, handler);
+        return executeVoidJs(
+                        JS_TRY_CATCH.formatted(
+                                """
+                                const h = this.__fsApiHandles.get($0);
+                                const url = this.getAttribute($1);
+                                const response = await fetch(url);
+                                if (!response.ok) {
+                                    throw new Error('NotAllowedError: Download failed with status ' + response.status);
+                                }
+                                const writable = await h.createWritable();
+                                const reader = response.body.getReader();
+                                while (true) {
+                                    const {done, value} = await reader.read();
+                                    if (done) break;
+                                    await writable.write(value);
+                                }
+                                await writable.close();"""),
+                        handleId,
+                        attr)
+                .whenComplete((result, error) -> element().removeAttribute(attr));
     }
 
     void releaseHandle(String handleId) {

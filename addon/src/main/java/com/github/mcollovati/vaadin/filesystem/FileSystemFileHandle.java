@@ -1,5 +1,8 @@
 package com.github.mcollovati.vaadin.filesystem;
 
+import com.vaadin.flow.server.streams.DownloadHandler;
+import com.vaadin.flow.server.streams.UploadHandler;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -64,5 +67,51 @@ public final class FileSystemFileHandle extends AbstractFileSystemHandle {
      */
     public CompletableFuture<FileSystemWritableFileStream> createWritable(WritableOptions options) {
         return bridge().createWritable(handleId(), options);
+    }
+
+    /**
+     * Uploads the file content to the server using the given
+     * {@link UploadHandler}.
+     *
+     * <p>This transfers the file via HTTP streaming (multipart upload),
+     * which is more efficient than {@link #getFile()} for large files
+     * because it avoids base64 encoding overhead and does not require
+     * the entire file content to be held in memory.
+     *
+     * <p>The {@link UploadHandler} receives the file as a standard
+     * multipart upload. Built-in implementations such as
+     * {@code UploadHandler.inMemory()}, {@code UploadHandler.toTempFile()},
+     * and {@code UploadHandler.toFile()} can be used.
+     *
+     * @param handler the upload handler to receive the file content,
+     *                not {@code null}
+     * @return a future that completes when the upload is finished
+     */
+    public CompletableFuture<Void> uploadTo(UploadHandler handler) {
+        Objects.requireNonNull(handler, "handler must not be null");
+        return bridge().uploadTo(handleId(), handler);
+    }
+
+    /**
+     * Downloads content from the server into this file using the given
+     * {@link DownloadHandler}.
+     *
+     * <p>This transfers data via HTTP streaming, piping the response
+     * body directly into a browser-side writable stream for this file.
+     * This is more efficient than {@link FileSystemWritableFileStream#write(byte[])}
+     * for large payloads because it avoids base64 encoding and streams
+     * data in chunks without holding it entirely in memory.
+     *
+     * <p>The method creates a writable stream internally, writes all
+     * received data, and closes the stream to commit the changes.
+     *
+     * @param handler the download handler providing the content to write,
+     *                not {@code null}
+     * @return a future that completes when the download and write are
+     *         finished
+     */
+    public CompletableFuture<Void> downloadFrom(DownloadHandler handler) {
+        Objects.requireNonNull(handler, "handler must not be null");
+        return bridge().downloadFrom(handleId(), handler);
     }
 }
