@@ -46,7 +46,7 @@ public sealed interface FileSystemHandle extends Serializable permits AbstractFi
      *
      * @return the entry name
      */
-    String getName();
+    String name();
 
     /**
      * Checks whether this handle and the given handle represent the same

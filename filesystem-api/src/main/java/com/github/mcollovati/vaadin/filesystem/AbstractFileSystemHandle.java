@@ -36,7 +36,7 @@ abstract sealed class AbstractFileSystemHandle implements FileSystemHandle
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return name;
     }
 

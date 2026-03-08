@@ -43,7 +43,7 @@ public final class FileSystemDirectoryHandle extends AbstractFileSystemHandle {
 
     @Override
     public String toString() {
-        return "FileSystemDirectoryHandle{name='" + getName() + "'}";
+        return "FileSystemDirectoryHandle{name='" + name() + "'}";
     }
 
     /**

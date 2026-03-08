@@ -66,17 +66,6 @@ public final class FileSystemCallbackAPI implements Serializable {
         return api;
     }
 
-    // -- Support check --
-
-    /**
-     * Checks whether the browser supports the File System API.
-     *
-     * @param onResult called with {@code true} if supported
-     */
-    public void isSupported(SerializableConsumer<Boolean> onResult) {
-        api.isSupported().thenAccept(onResult).exceptionally(this::logAndIgnore);
-    }
-
     // -- Open & Read --
 
     /**
