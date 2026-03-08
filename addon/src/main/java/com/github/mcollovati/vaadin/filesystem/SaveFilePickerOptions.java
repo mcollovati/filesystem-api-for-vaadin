@@ -197,8 +197,14 @@ public final class SaveFilePickerOptions implements Serializable {
          * Builds the options.
          *
          * @return the options instance
+         * @throws IllegalStateException if {@code excludeAcceptAllOption}
+         *         is {@code true} but no file type filters have been set
          */
         public SaveFilePickerOptions build() {
+            if (Boolean.TRUE.equals(options.excludeAcceptAllOption)
+                    && (options.types == null || options.types.isEmpty())) {
+                throw new IllegalStateException("excludeAcceptAllOption requires at least one file type filter");
+            }
             return options;
         }
     }

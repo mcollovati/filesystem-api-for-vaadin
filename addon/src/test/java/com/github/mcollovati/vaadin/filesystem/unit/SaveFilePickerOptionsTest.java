@@ -109,4 +109,30 @@ class SaveFilePickerOptionsTest {
 
         assertEquals("old.txt", original.getSuggestedName());
     }
+
+    @Test
+    void buildThrowsWhenExcludeAcceptAllWithoutTypes() {
+        var builder = SaveFilePickerOptions.builder().excludeAcceptAllOption(true);
+        var ex = assertThrows(IllegalStateException.class, builder::build);
+        assertTrue(ex.getMessage().contains("excludeAcceptAllOption"));
+    }
+
+    @Test
+    void buildThrowsWhenExcludeAcceptAllWithEmptyTypes() {
+        var builder =
+                SaveFilePickerOptions.builder().excludeAcceptAllOption(true).types(List.of());
+        var ex = assertThrows(IllegalStateException.class, builder::build);
+        assertTrue(ex.getMessage().contains("excludeAcceptAllOption"));
+    }
+
+    @Test
+    void buildSucceedsWhenExcludeAcceptAllWithTypes() {
+        var filter = FileTypeFilter.of("PDF", "application/pdf", ".pdf");
+        var options = SaveFilePickerOptions.builder()
+                .excludeAcceptAllOption(true)
+                .types(filter)
+                .build();
+        assertTrue(options.getExcludeAcceptAllOption());
+        assertEquals(1, options.getTypes().size());
+    }
 }

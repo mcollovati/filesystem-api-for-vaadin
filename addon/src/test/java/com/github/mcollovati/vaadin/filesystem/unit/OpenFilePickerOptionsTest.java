@@ -51,8 +51,11 @@ class OpenFilePickerOptionsTest {
 
     @Test
     void builderSetsExcludeAcceptAllOption() {
-        var options =
-                OpenFilePickerOptions.builder().excludeAcceptAllOption(true).build();
+        var filter = FileTypeFilter.of("Images", "image/*", ".png");
+        var options = OpenFilePickerOptions.builder()
+                .excludeAcceptAllOption(true)
+                .types(filter)
+                .build();
         assertTrue(options.getExcludeAcceptAllOption());
     }
 
@@ -116,5 +119,31 @@ class OpenFilePickerOptionsTest {
         original.rebuild().multiple(true).build();
 
         assertFalse(original.getMultiple());
+    }
+
+    @Test
+    void buildThrowsWhenExcludeAcceptAllWithoutTypes() {
+        var builder = OpenFilePickerOptions.builder().excludeAcceptAllOption(true);
+        var ex = assertThrows(IllegalStateException.class, builder::build);
+        assertTrue(ex.getMessage().contains("excludeAcceptAllOption"));
+    }
+
+    @Test
+    void buildThrowsWhenExcludeAcceptAllWithEmptyTypes() {
+        var builder =
+                OpenFilePickerOptions.builder().excludeAcceptAllOption(true).types(List.of());
+        var ex = assertThrows(IllegalStateException.class, builder::build);
+        assertTrue(ex.getMessage().contains("excludeAcceptAllOption"));
+    }
+
+    @Test
+    void buildSucceedsWhenExcludeAcceptAllWithTypes() {
+        var filter = FileTypeFilter.of("Images", "image/*", ".png");
+        var options = OpenFilePickerOptions.builder()
+                .excludeAcceptAllOption(true)
+                .types(filter)
+                .build();
+        assertTrue(options.getExcludeAcceptAllOption());
+        assertEquals(1, options.getTypes().size());
     }
 }
