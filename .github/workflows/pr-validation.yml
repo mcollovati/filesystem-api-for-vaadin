@@ -73,13 +73,13 @@ jobs:
           cache: maven
 
       - name: Run unit tests
-        run: mvn -pl filesystem-api,filesystem-api-browserless verify -ntp -B
+        run: mvn verify -pl '!integration-tests' -ntp -B
 
       - name: Unit test report summary
         if: always()
         run: |
           echo "## Unit Test Results" >> "$GITHUB_STEP_SUMMARY"
-          for DIR in filesystem-api/target/surefire-reports filesystem-api-browserless/target/surefire-reports; do
+          for DIR in */target/surefire-reports; do
             [ -d "$DIR" ] || continue
             MODULE=$(echo "$DIR" | cut -d/ -f1)
             TESTS=0; FAILURES=0; ERRORS=0; SKIPPED=0
