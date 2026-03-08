@@ -41,6 +41,11 @@ public final class FileSystemDirectoryHandle extends AbstractFileSystemHandle {
         return HandleKind.DIRECTORY;
     }
 
+    @Override
+    public String toString() {
+        return "FileSystemDirectoryHandle{name='" + getName() + "'}";
+    }
+
     /**
      * Returns a handle for a file with the given name in this directory.
      *

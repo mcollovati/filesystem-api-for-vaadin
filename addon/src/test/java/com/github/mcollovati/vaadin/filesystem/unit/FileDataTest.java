@@ -61,4 +61,11 @@ class FileDataTest {
             assertEquals(0, is.readAllBytes().length);
         }
     }
+
+    @Test
+    void toStringContainsNameSizeAndType() {
+        var fileData = new FileData("report.pdf", 1024L, "application/pdf", 0L, new byte[0]);
+        var str = fileData.toString();
+        assertEquals("FileData{name='report.pdf', size=1024, type='application/pdf'}", str);
+    }
 }

@@ -60,4 +60,16 @@ class HandleEqualsHashCodeTest {
         var handle = new FileSystemDirectoryHandle("1", "dir", null);
         assertEquals(handle, handle);
     }
+
+    @Test
+    void fileHandleToString() {
+        var handle = new FileSystemFileHandle("1", "photo.png", null);
+        assertEquals("FileSystemFileHandle{name='photo.png'}", handle.toString());
+    }
+
+    @Test
+    void directoryHandleToString() {
+        var handle = new FileSystemDirectoryHandle("1", "docs", null);
+        assertEquals("FileSystemDirectoryHandle{name='docs'}", handle.toString());
+    }
 }

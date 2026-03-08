@@ -42,6 +42,11 @@ public final class FileSystemFileHandle extends AbstractFileSystemHandle {
         return HandleKind.FILE;
     }
 
+    @Override
+    public String toString() {
+        return "FileSystemFileHandle{name='" + getName() + "'}";
+    }
+
     /**
      * Reads the file content from the browser.
      *

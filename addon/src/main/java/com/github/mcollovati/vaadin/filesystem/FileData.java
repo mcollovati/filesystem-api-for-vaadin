@@ -106,4 +106,9 @@ public final class FileData implements Serializable {
     public InputStream getContentAsInputStream() {
         return new ByteArrayInputStream(content);
     }
+
+    @Override
+    public String toString() {
+        return "FileData{name='" + name + "', size=" + size + ", type='" + type + "'}";
+    }
 }
