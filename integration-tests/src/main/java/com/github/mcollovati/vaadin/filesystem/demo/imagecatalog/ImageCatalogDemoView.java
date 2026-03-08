@@ -29,7 +29,6 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.StreamResource;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -146,10 +145,7 @@ public class ImageCatalogDemoView extends AbstractDemoView {
     }
 
     private Image createPreview(ImageEntry entry) {
-        var resource =
-                new StreamResource(entry.thumbnailFileName(), () -> new ByteArrayInputStream(entry.thumbnailBytes()));
-        resource.setContentType(entry.thumbnailMimeType());
-        var image = new Image(resource, entry.fileName());
+        var image = new Image(entry.thumbnailBytes(), entry.thumbnailFileName(), entry.thumbnailMimeType());
         image.setHeight("60px");
         return image;
     }
