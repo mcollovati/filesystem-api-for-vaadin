@@ -98,6 +98,24 @@ public sealed interface FileSystemHandle extends Serializable permits AbstractFi
     }
 
     /**
+     * Returns whether this handle represents a file.
+     *
+     * @return {@code true} if this handle's kind is {@link HandleKind#FILE}
+     */
+    default boolean isFile() {
+        return getKind() == HandleKind.FILE;
+    }
+
+    /**
+     * Returns whether this handle represents a directory.
+     *
+     * @return {@code true} if this handle's kind is {@link HandleKind#DIRECTORY}
+     */
+    default boolean isDirectory() {
+        return getKind() == HandleKind.DIRECTORY;
+    }
+
+    /**
      * Releases this handle, removing it from the client-side registry.
      *
      * <p>After calling this method, the handle should no longer be used
