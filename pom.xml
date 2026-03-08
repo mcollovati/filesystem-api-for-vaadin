@@ -267,5 +267,46 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>semver</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.siom79.japicmp</groupId>
+                        <artifactId>japicmp-maven-plugin</artifactId>
+                        <version>0.25.4</version>
+                        <configuration>
+                            <oldVersion>
+                                <file>
+                                    <path>${japicmp.baseline.dir}/${project.artifactId}.jar</path>
+                                </file>
+                            </oldVersion>
+                            <newVersion>
+                                <file>
+                                    <path>${project.build.directory}/${project.build.finalName}.jar</path>
+                                </file>
+                            </newVersion>
+                            <parameter>
+                                <accessModifier>public</accessModifier>
+                                <breakBuildBasedOnSemanticVersioning>false</breakBuildBasedOnSemanticVersioning>
+                                <ignoreMissingClasses>true</ignoreMissingClasses>
+                                <onlyModified>true</onlyModified>
+                            </parameter>
+                            <skipXmlReport>false</skipXmlReport>
+                            <skipHtmlReport>true</skipHtmlReport>
+                            <skipMarkdownReport>false</skipMarkdownReport>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>cmp</goal>
+                                </goals>
+                                <phase>verify</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

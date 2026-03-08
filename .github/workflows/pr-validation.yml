@@ -1,0 +1,346 @@
+name: PR Validation
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+
+  # ── Security gate for external contributors ──────────────────────────
+  approve-external:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ (github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER' || github.event.pull_request.author_association == 'COLLABORATOR') && '' || 'pr-validation' }}
+    steps:
+      - run: echo "PR approved for CI"
+
+  # ── Compile (no tests) ──────────────────────────────────────────────
+  build:
+    needs: approve-external
+    if: always() && (github.event_name == 'push' || needs.approve-external.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build (skip tests)
+        run: mvn clean install -DskipTests -B
+
+      - name: Upload workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace
+          path: |
+            .
+            !.git
+            !**/node_modules
+          retention-days: 1
+
+  # ── Unit tests ──────────────────────────────────────────────────────
+  unit-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run unit tests
+        run: mvn -pl filesystem-api,filesystem-api-browserless verify -B
+
+      - name: Unit test report summary
+        if: always()
+        run: |
+          echo "## Unit Test Results" >> "$GITHUB_STEP_SUMMARY"
+          for DIR in filesystem-api/target/surefire-reports filesystem-api-browserless/target/surefire-reports; do
+            [ -d "$DIR" ] || continue
+            MODULE=$(echo "$DIR" | cut -d/ -f1)
+            TESTS=0; FAILURES=0; ERRORS=0; SKIPPED=0
+            for XML in "$DIR"/TEST-*.xml; do
+              [ -f "$XML" ] || continue
+              TESTS=$((TESTS + $(grep -oP '(?<=tests=")[^"]+' "$XML" | head -1)))
+              FAILURES=$((FAILURES + $(grep -oP '(?<=failures=")[^"]+' "$XML" | head -1)))
+              ERRORS=$((ERRORS + $(grep -oP '(?<=errors=")[^"]+' "$XML" | head -1)))
+              SKIPPED=$((SKIPPED + $(grep -oP '(?<=skipped=")[^"]+' "$XML" | head -1)))
+            done
+            ICON="✅"; [ "$FAILURES" -gt 0 ] || [ "$ERRORS" -gt 0 ] && ICON="❌"
+            echo "${ICON} **${MODULE}**: ${TESTS} tests, ${FAILURES} failures, ${ERRORS} errors, ${SKIPPED} skipped" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: '**/target/surefire-reports/'
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ── Integration tests ──────────────────────────────────────────────
+  integration-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install Playwright browsers
+        run: >-
+          mvn exec:java
+          -e
+          -Dexec.mainClass=com.microsoft.playwright.CLI
+          -Dexec.classpathScope=test
+          -Dexec.args="install --with-deps chromium"
+          -pl integration-tests -B
+
+      - name: Run integration tests
+        run: mvn verify -Pit -Dsurefire.skip=true -B
+
+      - name: Integration test report summary
+        if: always()
+        run: |
+          DIR="integration-tests/target/failsafe-reports"
+          echo "## Integration Test Results" >> "$GITHUB_STEP_SUMMARY"
+          if [ -d "$DIR" ]; then
+            TESTS=0; FAILURES=0; ERRORS=0; SKIPPED=0
+            for XML in "$DIR"/TEST-*.xml; do
+              [ -f "$XML" ] || continue
+              TESTS=$((TESTS + $(grep -oP '(?<=tests=")[^"]+' "$XML" | head -1)))
+              FAILURES=$((FAILURES + $(grep -oP '(?<=failures=")[^"]+' "$XML" | head -1)))
+              ERRORS=$((ERRORS + $(grep -oP '(?<=errors=")[^"]+' "$XML" | head -1)))
+              SKIPPED=$((SKIPPED + $(grep -oP '(?<=skipped=")[^"]+' "$XML" | head -1)))
+            done
+            ICON="✅"; [ "$FAILURES" -gt 0 ] || [ "$ERRORS" -gt 0 ] && ICON="❌"
+            echo "${ICON} ${TESTS} tests, ${FAILURES} failures, ${ERRORS} errors, ${SKIPPED} skipped" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "⚠️ No failsafe reports found" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: '**/target/failsafe-reports/'
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ── Formatting check (PR only) ─────────────────────────────────────
+  format-check:
+    if: github.event_name == 'pull_request_target'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Check formatting
+        run: mvn spotless:check -B
+
+  # ── Semver analysis (PR only) ──────────────────────────────────────
+  semver-analysis:
+    if: github.event_name == 'pull_request_target'
+    needs: approve-external
+    runs-on: ubuntu-latest
+    env:
+      LIBRARY_MODULES: filesystem-api,filesystem-api-browserless
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build base branch JARs
+        run: |
+          git checkout ${{ github.event.pull_request.base.sha }}
+          mvn -pl "${LIBRARY_MODULES}" package -DskipTests -B -q
+          mkdir -p /tmp/baseline
+          for MODULE in ${LIBRARY_MODULES//,/ }; do
+            cp "${MODULE}"/target/"${MODULE}"-[0-9]*.jar "/tmp/baseline/${MODULE}.jar"
+          done
+          git checkout ${{ github.event.pull_request.head.sha }}
+
+      - name: Build PR head JARs and run japicmp
+        run: >-
+          mvn -pl "${LIBRARY_MODULES}" clean verify -DskipTests -Psemver
+          -Djapicmp.baseline.dir=/tmp/baseline -B
+
+      - name: Parse semver level
+        id: japicmp
+        run: |
+          # japicmp outputs semanticVersioning="major.minor.patch" where the
+          # non-zero position indicates the level (e.g. "1.0.0" = MAJOR)
+          OVERALL="PATCH"
+          COMBINED_REPORT=""
+
+          for MODULE in ${LIBRARY_MODULES//,/ }; do
+            REPORT_DIR="${MODULE}/target/japicmp"
+            LEVEL="PATCH"
+
+            if [ -f "${REPORT_DIR}/japicmp.xml" ]; then
+              SEMVER=$(grep -oP '(?<=semanticVersioning=")[^"]+' "${REPORT_DIR}/japicmp.xml" || echo "0.0.1")
+              MAJOR=$(echo "$SEMVER" | cut -d. -f1)
+              MINOR=$(echo "$SEMVER" | cut -d. -f2)
+              if [ "$MAJOR" != "0" ]; then
+                LEVEL="MAJOR"
+              elif [ "$MINOR" != "0" ]; then
+                LEVEL="MINOR"
+              fi
+            fi
+
+            if [ "$LEVEL" = "MAJOR" ]; then
+              OVERALL="MAJOR"
+            elif [ "$LEVEL" = "MINOR" ] && [ "$OVERALL" != "MAJOR" ]; then
+              OVERALL="MINOR"
+            fi
+
+            # Append module markdown report
+            if [ -f "${REPORT_DIR}/japicmp.md" ]; then
+              COMBINED_REPORT="${COMBINED_REPORT}### ${MODULE}\n\n$(cat "${REPORT_DIR}/japicmp.md")\n\n"
+            fi
+
+            # For MAJOR/MINOR changes, list affected types from the XML report
+            if [ "$LEVEL" != "PATCH" ] && [ -f "${REPORT_DIR}/japicmp.xml" ]; then
+              AFFECTED=$(grep -oP '(?<=fullyQualifiedName=")[^"]+' "${REPORT_DIR}/japicmp.xml" \
+                | sort -u | sed 's|^|  - `|;s|$|`|' || true)
+              if [ -n "$AFFECTED" ]; then
+                COMBINED_REPORT="${COMBINED_REPORT}**Affected types (${LEVEL}):**\n${AFFECTED}\n\n"
+              fi
+            fi
+          done
+
+          SEMVER_LOWER=$(echo "$OVERALL" | tr '[:upper:]' '[:lower:]')
+          echo "level=${SEMVER_LOWER}" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$COMBINED_REPORT" ]; then
+            {
+              echo "report<<JAPICMP_EOF"
+              echo -e "$COMBINED_REPORT"
+              echo "JAPICMP_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "report=No API changes detected." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Write job summary
+        env:
+          REPORT: ${{ steps.japicmp.outputs.report }}
+        run: |
+          echo "## Semver Analysis: \`${{ steps.japicmp.outputs.level }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload japicmp reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: japicmp-reports
+          path: '**/target/japicmp/'
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Apply semver label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SEMVER_LEVEL: ${{ steps.japicmp.outputs.level }}
+        run: |
+          gh pr edit "$PR_NUMBER" --remove-label "semver:patch" --remove-label "semver:minor" --remove-label "semver:major" 2>/dev/null || true
+          gh pr edit "$PR_NUMBER" --add-label "semver:${SEMVER_LEVEL}"
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- semver-analysis -->';
+            const level = '${{ steps.japicmp.outputs.level }}';
+            const report = `${{ steps.japicmp.outputs.report }}`;
+            const body = `${marker}\n## Semver Analysis: \`${level}\`\n\n${report}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }
+
+  # ── Merge gate ─────────────────────────────────────────────────────
+  validation:
+    if: always()
+    needs: [unit-tests, integration-tests, format-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required jobs
+        run: |
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.integration-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.format-check.result }}" != "success" && "${{ needs.format-check.result }}" != "skipped" ]]; then
+            echo "Required jobs failed or were cancelled"
+            exit 1
+          fi

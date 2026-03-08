@@ -29,6 +29,10 @@ mvn verify -Pit
 
 # Build for Vaadin Directory release
 mvn install -Pdirectory -pl filesystem-api
+
+# Semver analysis (compare current build against baseline JARs)
+mvn -pl filesystem-api,filesystem-api-browserless verify -DskipTests -Psemver \
+  -Djapicmp.baseline.dir=/tmp/baseline
 ```
 
 ## Architecture
