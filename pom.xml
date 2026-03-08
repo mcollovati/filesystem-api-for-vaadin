@@ -6,7 +6,7 @@
 
     <groupId>com.github.mcollovati</groupId>
     <artifactId>filesystem-api-parent</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Filesystem API for Vaadin</name>
     <description>Vaadin add-on providing Java API for the browser File System API</description>

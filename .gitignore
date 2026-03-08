@@ -3,6 +3,7 @@
 .settings
 .project
 .classpath
+pom.xml.versionsBackup
 
 *.iml
 .DS_Store
