@@ -161,7 +161,7 @@
         <profile>
             <id>release</id>
             <properties>
-                <altDeploymentRepository>local::file:./target/staging-deploy</altDeploymentRepository>
+                <altDeploymentRepository>local::file:${maven.multiModuleProjectDirectory}/target/staging-deploy</altDeploymentRepository>
                 <jreleaser.signing.mode>MEMORY</jreleaser.signing.mode>
             </properties>
             <build>
