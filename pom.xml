@@ -44,7 +44,7 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    <url>https://github.com/mcollovati/filesyste-api-for-vaadin</url>
+    <url>https://github.com/mcollovati/filesystem-api-for-vaadin</url>
     <developers>
         <developer>
             <id>mcollovati</id>
@@ -52,9 +52,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:https://github.com/mcollovati/filesyste-api-for-vaadin.git</connection>
-        <developerConnection>scm:git:git@github.com:mcollovati/filesyste-api-for-vaadin.git</developerConnection>
-        <url>https://github.com/mcollovati/filesyste-api-for-vaadin</url>
+        <connection>scm:git:https://github.com/mcollovati/filesystem-api-for-vaadin.git</connection>
+        <developerConnection>scm:git:git@github.com:mcollovati/filesystem-api-for-vaadin.git</developerConnection>
+        <url>https://github.com/mcollovati/filesystem-api-for-vaadin</url>
     </scm>
 
     <dependencyManagement>
@@ -208,7 +208,7 @@
                                 <release>
                                     <github>
                                         <owner>mcollovati</owner>
-                                        <name>filesyste-api-for-vaadin</name>
+                                        <name>filesystem-api-for-vaadin</name>
                                         <changelog>
                                             <formatted>ALWAYS</formatted>
                                             <preset>conventional-commits</preset>
