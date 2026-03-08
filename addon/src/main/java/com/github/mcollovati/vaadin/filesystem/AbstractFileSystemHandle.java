@@ -15,6 +15,7 @@
  */
 package com.github.mcollovati.vaadin.filesystem;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -57,6 +58,18 @@ abstract sealed class AbstractFileSystemHandle implements FileSystemHandle
     @Override
     public void release() {
         bridge.releaseHandle(handleId);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AbstractFileSystemHandle that)) return false;
+        return Objects.equals(handleId, that.handleId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(handleId);
     }
 
     String handleId() {
