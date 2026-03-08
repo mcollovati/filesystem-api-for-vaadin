@@ -82,6 +82,10 @@ public final class FileSystemCallbackAPI implements Serializable {
     /**
      * Opens a file picker and reads the selected file's content.
      *
+     * <p>The entire file is read into memory and base64-encoded for
+     * transfer to the server. For large files, prefer the streaming
+     * overload {@link #openFile(UploadHandler)}.
+     *
      * @param onSuccess called with the file data
      */
     public void openFile(SerializableConsumer<FileData> onSuccess) {
@@ -90,6 +94,11 @@ public final class FileSystemCallbackAPI implements Serializable {
 
     /**
      * Opens a file picker and reads the selected file's content.
+     *
+     * <p>The entire file is read into memory and base64-encoded for
+     * transfer to the server. For large files, prefer the streaming
+     * overload
+     * {@link #openFile(UploadHandler, SerializableRunnable, SerializableConsumer)}.
      *
      * @param onSuccess called with the file data
      * @param onError   called if an error occurs, or {@code null}
@@ -101,6 +110,11 @@ public final class FileSystemCallbackAPI implements Serializable {
     /**
      * Opens a file picker with the given options and reads the selected
      * file's content.
+     *
+     * <p>The entire file is read into memory and base64-encoded for
+     * transfer to the server. For large files, prefer the streaming
+     * overload
+     * {@link #openFile(OpenFilePickerOptions, UploadHandler, SerializableRunnable, SerializableConsumer)}.
      *
      * @param options   the picker options
      * @param onSuccess called with the file data
@@ -117,6 +131,10 @@ public final class FileSystemCallbackAPI implements Serializable {
      * Opens a file picker allowing multiple selection and reads all
      * selected files.
      *
+     * <p>Each file is read entirely into memory. For large or numerous
+     * files, consider using {@link #openFile(UploadHandler)} to process
+     * files individually via streaming.
+     *
      * @param onSuccess called with the list of file data
      */
     public void openFiles(SerializableConsumer<List<FileData>> onSuccess) {
@@ -126,6 +144,11 @@ public final class FileSystemCallbackAPI implements Serializable {
     /**
      * Opens a file picker allowing multiple selection and reads all
      * selected files.
+     *
+     * <p>Each file is read entirely into memory. For large or numerous
+     * files, consider using
+     * {@link #openFile(UploadHandler, SerializableRunnable, SerializableConsumer)}
+     * to process files individually via streaming.
      *
      * @param onSuccess called with the list of file data
      * @param onError   called if an error occurs, or {@code null}
@@ -137,6 +160,11 @@ public final class FileSystemCallbackAPI implements Serializable {
     /**
      * Opens a file picker with the given options and reads all selected
      * files.
+     *
+     * <p>Each file is read entirely into memory. For large or numerous
+     * files, consider using
+     * {@link #openFile(OpenFilePickerOptions, UploadHandler, SerializableRunnable, SerializableConsumer)}
+     * to process files individually via streaming.
      *
      * @param options   the picker options
      * @param onSuccess called with the list of file data

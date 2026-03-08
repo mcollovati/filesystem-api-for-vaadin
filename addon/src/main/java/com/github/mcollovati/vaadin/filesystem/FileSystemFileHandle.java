@@ -51,11 +51,14 @@ public final class FileSystemFileHandle extends AbstractFileSystemHandle {
      * Reads the file content from the browser.
      *
      * <p>The file is read entirely into memory and transferred to the
-     * server via base64 encoding. For very large files, consider the
-     * memory implications on both the browser and server sides.
+     * server via base64 encoding (33&percnt; overhead). For large files this
+     * can cause significant memory pressure on both the browser and
+     * server. Prefer {@link #uploadTo(UploadHandler)} for files that
+     * may be large, as it streams the content without base64 overhead.
      *
      * @return a future that completes with the file data including
      *         metadata and content
+     * @see #uploadTo(UploadHandler)
      */
     public CompletableFuture<FileData> getFile() {
         return bridge().getFile(handleId());

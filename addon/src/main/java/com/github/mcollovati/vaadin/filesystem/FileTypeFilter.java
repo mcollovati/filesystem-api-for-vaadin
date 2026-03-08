@@ -18,6 +18,8 @@ package com.github.mcollovati.vaadin.filesystem;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Describes a file type filter for use in file picker options.
@@ -30,12 +32,41 @@ import java.util.Map;
  *         Map.of("image/*", List.of(".png", ".jpg")));
  * }</pre>
  *
- * @param description a human-readable description of the filter
+ * @param description an optional human-readable description of the filter;
+ *                    {@code null} is normalized to an empty string
  * @param accept a map of MIME types to accepted file extensions
  * @see OpenFilePickerOptions
  * @see SaveFilePickerOptions
  */
 public record FileTypeFilter(String description, Map<String, List<String>> accept) implements Serializable {
+
+    private static final Pattern MIME_PATTERN =
+            Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9!#$&\\-^_.+]*/(\\*|[a-zA-Z0-9][a-zA-Z0-9!#$&\\-^_.+]*)$");
+
+    /**
+     * Validates MIME types and file extensions. A {@code null} description
+     * is normalized to an empty string.
+     */
+    public FileTypeFilter {
+        description = description != null ? description : "";
+        Objects.requireNonNull(accept, "accept must not be null");
+        if (accept.isEmpty()) {
+            throw new IllegalArgumentException("accept must contain at least one MIME type entry");
+        }
+        for (var entry : accept.entrySet()) {
+            String mimeType = entry.getKey();
+            if (mimeType == null || !MIME_PATTERN.matcher(mimeType).matches()) {
+                throw new IllegalArgumentException("Invalid MIME type: '" + mimeType
+                        + "'. Expected format: type/subtype (e.g. 'image/*', 'text/plain')");
+            }
+            for (String ext : entry.getValue()) {
+                if (ext == null || !ext.startsWith(".")) {
+                    throw new IllegalArgumentException(
+                            "Invalid file extension: '" + ext + "'. Extensions must start with '.'");
+                }
+            }
+        }
+    }
 
     /**
      * Creates a filter for a single MIME type with optional extensions.

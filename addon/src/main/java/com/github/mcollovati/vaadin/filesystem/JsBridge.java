@@ -82,6 +82,32 @@ class JsBridge implements Serializable {
             }""";
 
     /**
+     * Returns a JS snippet that retrieves a handle from the registry and
+     * throws a descriptive {@code NotFoundError} if the handle is missing
+     * (e.g. after {@code release()} was called).
+     */
+    private static String requireHandle(String varName, String paramRef) {
+        return """
+                const %s = this.__fsApiHandles.get(%s);
+                if (!%s) throw new DOMException('Handle not found (released or invalid)', 'NotFoundError');
+                """
+                .formatted(varName, paramRef, varName);
+    }
+
+    /**
+     * Returns a JS snippet that retrieves a writable stream from the
+     * registry and throws a descriptive {@code NotFoundError} if the
+     * stream is missing (e.g. after it was closed).
+     */
+    private static String requireWritable(String varName, String paramRef) {
+        return """
+                const %s = this.__fsApiWritables.get(%s);
+                if (!%s) throw new DOMException('Writable stream not found (closed or invalid)', 'NotFoundError');
+                """
+                .formatted(varName, paramRef, varName);
+    }
+
+    /**
      * Maps JS DOMException names to Java exception factory methods.
      */
     private static final Map<String, ExceptionFactory> ERROR_MAP = Map.of(
@@ -127,11 +153,9 @@ class JsBridge implements Serializable {
 
     CompletableFuture<Boolean> isSameEntry(String handleId1, String handleId2) {
         return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                """
-                                const h1 = this.__fsApiHandles.get($0);
-                                const h2 = this.__fsApiHandles.get($1);
-                                return await h1.isSameEntry(h2);"""),
+                        JS_TRY_CATCH.formatted(requireHandle("h1", "$0")
+                                + requireHandle("h2", "$1")
+                                + "return await h1.isSameEntry(h2);"),
                         handleId1,
                         handleId2)
                 .toCompletableFuture(Boolean.class));
@@ -140,9 +164,7 @@ class JsBridge implements Serializable {
     CompletableFuture<PermissionState> queryPermission(String handleId, PermissionMode mode) {
         return mapErrors(executeJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const h = this.__fsApiHandles.get($0);
-                                return await h.queryPermission({mode: $1});"""),
+                                requireHandle("h", "$0") + "return await h.queryPermission({mode: $1});"),
                         handleId,
                         mode.getJsValue())
                 .toCompletableFuture(String.class)
@@ -152,9 +174,7 @@ class JsBridge implements Serializable {
     CompletableFuture<PermissionState> requestPermission(String handleId, PermissionMode mode) {
         return mapErrors(executeJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const h = this.__fsApiHandles.get($0);
-                                return await h.requestPermission({mode: $1});"""),
+                                requireHandle("h", "$0") + "return await h.requestPermission({mode: $1});"),
                         handleId,
                         mode.getJsValue())
                 .toCompletableFuture(String.class)
@@ -230,12 +250,11 @@ class JsBridge implements Serializable {
 
     CompletableFuture<FileSystemFileHandle> getFileHandle(String dirHandleId, String name, GetHandleOptions options) {
         return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                """
-                                const dir = this.__fsApiHandles.get($0);
+                        JS_TRY_CATCH.formatted(requireHandle("dir", "$0")
+                                + """
                                 const handle = await dir.getFileHandle($1, $2);
                                 """
-                                        + REGISTER_SINGLE_HANDLE),
+                                + REGISTER_SINGLE_HANDLE),
                         dirHandleId,
                         name,
                         options)
@@ -246,12 +265,11 @@ class JsBridge implements Serializable {
     CompletableFuture<FileSystemDirectoryHandle> getDirectoryHandle(
             String dirHandleId, String name, GetHandleOptions options) {
         return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                """
-                                const dir = this.__fsApiHandles.get($0);
+                        JS_TRY_CATCH.formatted(requireHandle("dir", "$0")
+                                + """
                                 const handle = await dir.getDirectoryHandle($1, $2);
                                 """
-                                        + REGISTER_SINGLE_HANDLE),
+                                + REGISTER_SINGLE_HANDLE),
                         dirHandleId,
                         name,
                         options)
@@ -261,10 +279,7 @@ class JsBridge implements Serializable {
 
     CompletableFuture<Void> removeEntry(String dirHandleId, String name, RemoveEntryOptions options) {
         return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        """
-                        const dir = this.__fsApiHandles.get($0);
-                        await dir.removeEntry($1, $2);"""),
+                JS_TRY_CATCH.formatted(requireHandle("dir", "$0") + "await dir.removeEntry($1, $2);"),
                 dirHandleId,
                 name,
                 options);
@@ -273,9 +288,9 @@ class JsBridge implements Serializable {
     CompletableFuture<Optional<List<String>>> resolve(String dirHandleId, String childHandleId) {
         return mapErrors(executeJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const dir = this.__fsApiHandles.get($0);
-                                const child = this.__fsApiHandles.get($1);
+                                requireHandle("dir", "$0")
+                                        + requireHandle("child", "$1")
+                                        + """
                                 const path = await dir.resolve(child);
                                 return path;"""),
                         dirHandleId,
@@ -287,8 +302,8 @@ class JsBridge implements Serializable {
     CompletableFuture<List<FileSystemHandle>> entries(String dirHandleId) {
         return mapErrors(executeJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const dir = this.__fsApiHandles.get($0);
+                                requireHandle("dir", "$0")
+                                        + """
                                 const result = [];
                                 for await (const [name, handle] of dir.entries()) {
                                     const id = String(this.__fsApiNextId++);
@@ -311,8 +326,8 @@ class JsBridge implements Serializable {
     CompletableFuture<FileData> getFile(String handleId) {
         return mapErrors(executeJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const h = this.__fsApiHandles.get($0);
+                                requireHandle("h", "$0")
+                                        + """
                                 const file = await h.getFile();
                                 const buf = await file.arrayBuffer();
                                 const bytes = new Uint8Array(buf);
@@ -335,8 +350,8 @@ class JsBridge implements Serializable {
     CompletableFuture<FileSystemWritableFileStream> createWritable(String handleId, WritableOptions options) {
         return mapErrors(executeJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const h = this.__fsApiHandles.get($0);
+                                requireHandle("h", "$0")
+                                        + """
                                 const writable = await h.createWritable($1);
                                 const id = String(this.__fsApiNextWritableId++);
                                 this.__fsApiWritables.set(id, writable);
@@ -348,21 +363,15 @@ class JsBridge implements Serializable {
     }
 
     CompletableFuture<Void> writableWriteText(String streamId, String text) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        """
-                        const w = this.__fsApiWritables.get($0);
-                        await w.write($1);"""),
-                streamId,
-                text);
+        return executeVoidJs(JS_TRY_CATCH.formatted(requireWritable("w", "$0") + "await w.write($1);"), streamId, text);
     }
 
     CompletableFuture<Void> writableWriteBytes(String streamId, byte[] data) {
         String base64 = Base64.getEncoder().encodeToString(data);
         return executeVoidJs(
                 JS_TRY_CATCH.formatted(
-                        """
-                        const w = this.__fsApiWritables.get($0);
+                        requireWritable("w", "$0")
+                                + """
                         const binary = atob($1);
                         const bytes = new Uint8Array(binary.length);
                         for (let i = 0; i < binary.length; i++) {
@@ -375,29 +384,19 @@ class JsBridge implements Serializable {
 
     CompletableFuture<Void> writableSeek(String streamId, long position) {
         return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        """
-                        const w = this.__fsApiWritables.get($0);
-                        await w.seek($1);"""),
-                streamId,
-                (double) position);
+                JS_TRY_CATCH.formatted(requireWritable("w", "$0") + "await w.seek($1);"), streamId, (double) position);
     }
 
     CompletableFuture<Void> writableTruncate(String streamId, long size) {
         return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        """
-                        const w = this.__fsApiWritables.get($0);
-                        await w.truncate($1);"""),
-                streamId,
-                (double) size);
+                JS_TRY_CATCH.formatted(requireWritable("w", "$0") + "await w.truncate($1);"), streamId, (double) size);
     }
 
     CompletableFuture<Void> writableClose(String streamId) {
         return executeVoidJs(
                 JS_TRY_CATCH.formatted(
-                        """
-                        const w = this.__fsApiWritables.get($0);
+                        requireWritable("w", "$0")
+                                + """
                         await w.close();
                         this.__fsApiWritables.delete($0);"""),
                 streamId);
@@ -410,8 +409,8 @@ class JsBridge implements Serializable {
         element().setAttribute(attr, handler);
         return executeVoidJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const h = this.__fsApiHandles.get($0);
+                                requireHandle("h", "$0")
+                                        + """
                                 const file = await h.getFile();
                                 const formData = new FormData();
                                 formData.append('file', file, file.name);
@@ -430,8 +429,8 @@ class JsBridge implements Serializable {
         element().setAttribute(attr, handler);
         return executeVoidJs(
                         JS_TRY_CATCH.formatted(
-                                """
-                                const h = this.__fsApiHandles.get($0);
+                                requireHandle("h", "$0")
+                                        + """
                                 const url = this.getAttribute($1);
                                 const response = await fetch(url);
                                 if (!response.ok) {

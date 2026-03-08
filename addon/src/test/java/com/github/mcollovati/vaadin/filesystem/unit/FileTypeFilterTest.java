@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.mcollovati.vaadin.filesystem.FileTypeFilter;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class FileTypeFilterTest {
@@ -36,5 +37,42 @@ class FileTypeFilterTest {
         var filter = FileTypeFilter.of("All Images", "image/*");
         assertEquals("All Images", filter.description());
         assertEquals(List.of(), filter.accept().get("image/*"));
+    }
+
+    @Test
+    void nullDescription_defaultsToEmpty() {
+        var filter = new FileTypeFilter(null, Map.of("image/*", List.of()));
+        assertEquals("", filter.description());
+    }
+
+    @Test
+    void nullAccept_throws() {
+        assertThrows(NullPointerException.class, () -> new FileTypeFilter("Images", null));
+    }
+
+    @Test
+    void emptyAccept_throws() {
+        var ex = assertThrows(IllegalArgumentException.class, () -> new FileTypeFilter("Images", Map.of()));
+        assertTrue(ex.getMessage().contains("at least one"));
+    }
+
+    @Test
+    void invalidMimeType_throws() {
+        var ex =
+                assertThrows(IllegalArgumentException.class, () -> FileTypeFilter.of("Bad", "not-a-mime-type", ".txt"));
+        assertTrue(ex.getMessage().contains("Invalid MIME type"));
+    }
+
+    @Test
+    void extensionWithoutDot_throws() {
+        var ex = assertThrows(IllegalArgumentException.class, () -> FileTypeFilter.of("Bad", "text/plain", "txt"));
+        assertTrue(ex.getMessage().contains("Invalid file extension"));
+    }
+
+    @Test
+    void validMimeTypes() {
+        assertDoesNotThrow(() -> FileTypeFilter.of("Text", "text/plain", ".txt"));
+        assertDoesNotThrow(() -> FileTypeFilter.of("Images", "image/*", ".png"));
+        assertDoesNotThrow(() -> FileTypeFilter.of("Custom", "application/vnd.ms-excel", ".xls"));
     }
 }

@@ -74,6 +74,10 @@ public final class FileSystemAPI implements Serializable {
     /**
      * Opens a file picker and reads the selected file's content.
      *
+     * <p>The entire file is read into memory and base64-encoded for
+     * transfer to the server. For large files, prefer the streaming
+     * overload {@link #openFile(UploadHandler)}.
+     *
      * @return a future that completes with the file data
      */
     public CompletableFuture<FileData> openFile() {
@@ -83,6 +87,10 @@ public final class FileSystemAPI implements Serializable {
     /**
      * Opens a file picker with the given options and reads the selected
      * file's content.
+     *
+     * <p>The entire file is read into memory and base64-encoded for
+     * transfer to the server. For large files, prefer the streaming
+     * overload {@link #openFile(OpenFilePickerOptions, UploadHandler)}.
      *
      * @param options the picker options
      * @return a future that completes with the file data
@@ -94,6 +102,10 @@ public final class FileSystemAPI implements Serializable {
     /**
      * Opens a file picker allowing multiple selection and reads all
      * selected files' content.
+     *
+     * <p>Each file is read entirely into memory. For large or numerous
+     * files, consider using {@link #openFile(UploadHandler)} to process
+     * files individually via streaming.
      *
      * @return a future that completes with the list of file data
      */
@@ -108,6 +120,11 @@ public final class FileSystemAPI implements Serializable {
      * <p>{@code multiple(true)} is forced on the effective options
      * regardless of the value in the provided options, so the picker
      * always allows selecting more than one file.
+     *
+     * <p>Each file is read entirely into memory. For large or numerous
+     * files, consider using
+     * {@link #openFile(OpenFilePickerOptions, UploadHandler)} to process
+     * files individually via streaming.
      *
      * @param options the picker options
      * @return a future that completes with the list of file data
