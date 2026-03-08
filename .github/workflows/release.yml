@@ -121,7 +121,7 @@ jobs:
 
       - name: Upload JReleaser output
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jreleaser-output
           path: |
@@ -135,7 +135,7 @@ jobs:
 
       - name: Upload staged artifacts (dry-run)
         if: inputs.dry-run == true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: staged-artifacts
           path: target/staging-deploy/
