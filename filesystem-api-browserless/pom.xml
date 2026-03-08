@@ -13,6 +13,7 @@
     <artifactId>filesystem-api-browserless</artifactId>
     <name>Filesystem API for Vaadin - Browserless Test Support</name>
     <description>Browserless test support for the Filesystem API Vaadin add-on</description>
+    <url>https://github.com/mcollovati/filesystem-api-for-vaadin</url>
 
     <dependencies>
         <dependency>

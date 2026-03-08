@@ -13,6 +13,7 @@
     <artifactId>filesystem-api</artifactId>
     <name>Filesystem API for Vaadin - Add-on</name>
     <description>Vaadin add-on providing Java API for the browser File System API</description>
+    <url>https://github.com/mcollovati/filesystem-api-for-vaadin</url>
 
     <dependencies>
         <dependency>
