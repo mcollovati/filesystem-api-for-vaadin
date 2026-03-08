@@ -213,6 +213,12 @@
                                             <formatted>ALWAYS</formatted>
                                             <preset>conventional-commits</preset>
                                             <skipMergeCommits>true</skipMergeCommits>
+                                            <replacers>
+                                                <replacer>
+                                                    <search>\s*\(#\d+\)</search>
+                                                    <replace></replace>
+                                                </replacer>
+                                            </replacers>
                                             <hide>
                                                 <categories>
                                                     <category>merge</category>
