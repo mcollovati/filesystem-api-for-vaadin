@@ -70,3 +70,4 @@ Client-side handle registry: JS `Map` stored on the host component's DOM element
 - Formatting enforced by Spotless (palantir-java-format) — runs on all modules.
 - Apache 2.0 license header required on all Java files (template: `etc/license-header.txt`).
 - Commit messages explain **why**, not what. Never add co-authored-by lines. Wrap `@annotations` and class names in backticks.
+- Changes to `.github/workflows/` use the `chore(actions):` commit message prefix.

@@ -17,7 +17,7 @@ jobs:
     if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     environment:
-      name: ${{ (github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER' || github.event.pull_request.author_association == 'COLLABORATOR') && '' || 'pr-validation' }}
+      name: ${{ github.event.pull_request.head.repo.fork && 'pr-validation' || '' }}
     steps:
       - run: echo "PR approved for CI"
 
