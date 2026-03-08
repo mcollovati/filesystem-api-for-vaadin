@@ -21,4 +21,4 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --environment production --detach
+        run: railway up  --environment production --service filesystem-api-for-vaadin
