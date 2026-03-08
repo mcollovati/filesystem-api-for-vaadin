@@ -48,7 +48,7 @@ jobs:
         run: mvn clean install -DskipTests -ntp -B
 
       - name: Upload workspace
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: workspace
           path: |
@@ -100,7 +100,7 @@ jobs:
 
       - name: Upload unit test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-reports
           path: '**/target/surefire-reports/'
@@ -160,7 +160,7 @@ jobs:
 
       - name: Upload integration test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-reports
           path: '**/target/failsafe-reports/'
@@ -293,7 +293,7 @@ jobs:
 
       - name: Upload japicmp reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: japicmp-reports
           path: '**/target/japicmp/'
