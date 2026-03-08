@@ -307,11 +307,14 @@ jobs:
 
       - name: Post or update PR comment
         uses: actions/github-script@v7
+        env:
+          SEMVER_LEVEL: ${{ steps.japicmp.outputs.level }}
+          SEMVER_REPORT: ${{ steps.japicmp.outputs.report }}
         with:
           script: |
             const marker = '<!-- semver-analysis -->';
-            const level = '${{ steps.japicmp.outputs.level }}';
-            const report = `${{ steps.japicmp.outputs.report }}`;
+            const level = process.env.SEMVER_LEVEL;
+            const report = process.env.SEMVER_REPORT;
             const body = `${marker}\n## Semver Analysis: \`${level}\`\n\n${report}`;
 
             const { data: comments } = await github.rest.issues.listComments({
