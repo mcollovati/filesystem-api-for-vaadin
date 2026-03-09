@@ -43,11 +43,9 @@ import java.util.function.Consumer;
  */
 public final class FileSystemTester {
 
-    private final FakeJsBridge bridge;
     private final InMemoryFileSystem fs;
 
-    private FileSystemTester(FakeJsBridge bridge, InMemoryFileSystem fs) {
-        this.bridge = bridge;
+    private FileSystemTester(InMemoryFileSystem fs) {
         this.fs = fs;
     }
 
@@ -68,15 +66,6 @@ public final class FileSystemTester {
      */
     public InMemoryFileSystem fileSystem() {
         return fs;
-    }
-
-    /**
-     * Returns the fake bridge for advanced configuration.
-     *
-     * @return the fake bridge
-     */
-    public FakeJsBridge bridge() {
-        return bridge;
     }
 
     /**
@@ -227,7 +216,7 @@ public final class FileSystemTester {
                 bridge.setPermissionState(permissionState);
             }
             ComponentUtil.setData(component, JsBridge.class, bridge);
-            return new FileSystemTester(bridge, fs);
+            return new FileSystemTester(fs);
         }
     }
 }
