@@ -31,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
  * <p>OPFS is a sandboxed file system private to the page's origin, accessed
  * via
  * <a href="https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/getDirectory">{@code navigator.storage.getDirectory()}</a>.
- * Unlike the picker methods on {@link FileSystemAPI}, OPFS does not show
+ * Unlike the picker methods on {@link ClientFileSystem}, OPFS does not show
  * dialogs and does not require user interaction. It also has broader
  * browser support (Firefox and Safari support OPFS but not the picker API).
  *
@@ -58,16 +58,16 @@ import java.util.concurrent.CompletableFuture;
  *     entries.forEach(e -> log(e.getName())));
  * }</pre>
  *
- * <p><b>When to use this vs {@link FileSystemAPI}:</b>
+ * <p><b>When to use this vs {@link ClientFileSystem}:</b>
  * <ul>
- *   <li>Use {@link FileSystemAPI} when the user picks files or directories
+ *   <li>Use {@link ClientFileSystem} when the user picks files or directories
  *       via native OS dialogs (open, save, browse). Works only in Chromium.
  *   <li>Use {@code OriginPrivateFileSystem} for programmatic app-managed
  *       storage without user prompts. Broader browser support. Persistent
  *       sandboxed storage. Path-based convenience.
  * </ul>
  *
- * @see FileSystemAPI
+ * @see ClientFileSystem
  * @see FileSystemDirectoryHandle
  */
 public final class OriginPrivateFileSystem implements Serializable {

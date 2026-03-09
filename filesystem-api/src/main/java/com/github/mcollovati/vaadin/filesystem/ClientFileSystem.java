@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
  * {@link OriginPrivateFileSystem} instead.
  *
  * <pre>{@code
- * var fs = new FileSystemAPI(myView);
+ * var fs = new ClientFileSystem(myView);
  *
  * // Pick and read a file in one step
  * fs.openFile().thenAccept(fileData ->
@@ -43,9 +43,9 @@ import java.util.concurrent.CompletableFuture;
  * fs.saveFile("Hello, world!");
  * }</pre>
  *
- * @see FileSystemCallbackAPI
+ * @see CallbackClientFileSystem
  */
-public final class FileSystemAPI implements Serializable {
+public final class ClientFileSystem implements Serializable {
 
     private final Component component;
     private JsBridge bridge;
@@ -55,7 +55,7 @@ public final class FileSystemAPI implements Serializable {
      *
      * @param component the component to bind to, not {@code null}
      */
-    public FileSystemAPI(Component component) {
+    public ClientFileSystem(Component component) {
         this.component = component;
     }
 

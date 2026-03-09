@@ -15,7 +15,7 @@
  */
 package com.github.mcollovati.vaadin.filesystem.it;
 
-import com.github.mcollovati.vaadin.filesystem.FileSystemAPI;
+import com.github.mcollovati.vaadin.filesystem.ClientFileSystem;
 import com.vaadin.flow.component.html.NativeButton;
 import com.vaadin.flow.component.html.Pre;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -24,11 +24,11 @@ import com.vaadin.flow.router.Route;
 @Route("test/support")
 public class FileSystemSupportTestView extends VerticalLayout {
 
-    private final FileSystemAPI fs;
+    private final ClientFileSystem fs;
     private final Pre log;
 
     public FileSystemSupportTestView() {
-        fs = new FileSystemAPI(this);
+        fs = new ClientFileSystem(this);
         log = new Pre();
         log.setId("log");
         log.setWidthFull();

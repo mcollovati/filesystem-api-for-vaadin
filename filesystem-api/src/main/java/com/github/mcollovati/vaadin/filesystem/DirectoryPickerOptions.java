@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serializable;
 
 /**
- * Options for {@link FileSystemAPI#openDirectory(DirectoryPickerOptions)}.
+ * Options for {@link ClientFileSystem#openDirectory(DirectoryPickerOptions)}.
  *
  * <p>Use the {@link #builder()} to create an instance.
  *

@@ -52,13 +52,13 @@ Add the dependency to your `pom.xml`:
 
 ## Getting Started
 
-Create a `FileSystemAPI` instance bound to any Vaadin component (typically your
+Create a `ClientFileSystem` instance bound to any Vaadin component (typically your
 view) and use it to interact with the browser's file system.
 
 ### Read a file
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 fs.openFile().thenAccept(fileData -> {
     String name = fileData.getName();
@@ -71,7 +71,7 @@ fs.openFile().thenAccept(fileData -> {
 ### Write a file
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 var options = SaveFilePickerOptions.builder()
         .suggestedName("hello.txt")
@@ -82,7 +82,7 @@ fs.saveFile(options, "Hello, world!");
 ### Browse a directory
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 fs.listDirectory().thenAccept(entries -> {
     for (FileSystemHandle entry : entries) {
@@ -96,7 +96,7 @@ fs.listDirectory().thenAccept(entries -> {
 If you prefer callbacks over futures:
 
 ```java
-var fs = new FileSystemCallbackAPI(this);
+var fs = new CallbackClientFileSystem(this);
 
 fs.openFile(
     fileData -> Notification.show("Read: " + fileData.getName()),
@@ -133,7 +133,7 @@ For large files, use Vaadin's `UploadHandler` / `DownloadHandler` to avoid
 base64 overhead:
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 // Upload: browser file -> server
 fs.openFile(UploadHandler.inMemory((meta, data) -> {

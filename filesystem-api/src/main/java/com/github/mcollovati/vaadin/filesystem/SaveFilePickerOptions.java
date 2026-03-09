@@ -20,7 +20,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * Options for {@link FileSystemAPI#saveFile(SaveFilePickerOptions, String)}.
+ * Options for {@link ClientFileSystem#saveFile(SaveFilePickerOptions, String)}.
  *
  * <p>Use the {@link #builder()} to create an instance.
  *

@@ -28,7 +28,7 @@ The add-on mirrors the browser's
 [File System API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API)
 as a server-side Java API. Key concepts:
 
-- **`FileSystemAPI`** — the entry point for picker-based operations, bound to a
+- **`ClientFileSystem`** — the entry point for picker-based operations, bound to a
   Vaadin `Component`. All operations return `CompletableFuture`s.
 - **`OriginPrivateFileSystem`** — the entry point for OPFS operations, with
   path-based convenience methods and automatic directory creation.
@@ -40,25 +40,25 @@ as a server-side Java API. Key concepts:
 
 ## API Styles
 
-### CompletableFuture-based (`FileSystemAPI`)
+### CompletableFuture-based (`ClientFileSystem`)
 
 Every operation returns a `CompletableFuture`. Chain operations naturally:
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 fs.openFile()
     .thenAccept(data -> log("Got " + data.getName()))
     .exceptionally(error -> { log("Failed: " + error); return null; });
 ```
 
-### Callback-based (`FileSystemCallbackAPI`)
+### Callback-based (`CallbackClientFileSystem`)
 
-Wraps `FileSystemAPI` with simple `onSuccess` / `onError` callbacks. Errors are
+Wraps `ClientFileSystem` with simple `onSuccess` / `onError` callbacks. Errors are
 logged at `FINE` level when no error callback is provided.
 
 ```java
-var fs = new FileSystemCallbackAPI(this);
+var fs = new CallbackClientFileSystem(this);
 
 fs.openFile(
     data -> log("Got " + data.getName()),
@@ -74,7 +74,7 @@ Access the underlying future-based API at any time via `fs.api()`.
 ### Open file picker
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 // Single file — default options
 fs.openFile().thenAccept(fileData -> { ... });
@@ -95,7 +95,7 @@ fs.openFiles(options).thenAccept(files -> { ... });
 ### Save file picker
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 // Simple text save
 fs.saveFile("Hello, world!");
@@ -115,7 +115,7 @@ fs.saveFile(pngBytes);
 ### Directory picker
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 // Get a directory handle
 fs.openDirectory().thenAccept(dir -> { ... });
@@ -335,9 +335,9 @@ OPFS is useful for:
 - Caching downloaded content
 - Integration tests (no native dialogs needed)
 
-### Choosing between `FileSystemAPI` and `OriginPrivateFileSystem`
+### Choosing between `ClientFileSystem` and `OriginPrivateFileSystem`
 
-| | `FileSystemAPI` | `OriginPrivateFileSystem` |
+| | `ClientFileSystem` | `OriginPrivateFileSystem` |
 |---|---|---|
 | **Use when** | User picks files/directories via native OS dialogs | Programmatic app-managed storage without user prompts |
 | **Browser support** | Chromium only (Chrome, Edge, Opera) | Broader (Firefox, Safari, Chromium) |
@@ -357,7 +357,7 @@ content in memory). The streaming API uses Vaadin's `UploadHandler` and
 ### Upload (browser to server)
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 // In-memory
 fs.openFile(UploadHandler.inMemory((meta, data) -> {
@@ -379,7 +379,7 @@ fs.openFile(options, UploadHandler.inMemory((meta, data) -> { ... }));
 ### Download (server to browser)
 
 ```java
-var fs = new FileSystemAPI(this);
+var fs = new ClientFileSystem(this);
 
 // Fixed content
 fs.saveFile(DownloadHandler.forFixedContent(
@@ -468,7 +468,7 @@ fs.openFile()
 ### Handling errors with callbacks
 
 ```java
-var fs = new FileSystemCallbackAPI(this);
+var fs = new CallbackClientFileSystem(this);
 
 fs.openFile(
     data -> { ... },
@@ -487,8 +487,8 @@ fs.openFile(
 
 | Class | Description |
 |-------|-------------|
-| `FileSystemAPI` | Future-based picker API, bound to a `Component` |
-| `FileSystemCallbackAPI` | Callback-based wrapper around `FileSystemAPI` |
+| `ClientFileSystem` | Future-based picker API, bound to a `Component` |
+| `CallbackClientFileSystem` | Callback-based wrapper around `ClientFileSystem` |
 | `OriginPrivateFileSystem` | Path-based OPFS API, bound to a `Component` |
 
 ### Handle Types
@@ -505,9 +505,9 @@ fs.openFile(
 
 | Class | Used By |
 |-------|---------|
-| `OpenFilePickerOptions` | `FileSystemAPI.openFile()`, `openFiles()` |
-| `SaveFilePickerOptions` | `FileSystemAPI.saveFile()` |
-| `DirectoryPickerOptions` | `FileSystemAPI.openDirectory()`, `listDirectory()` |
+| `OpenFilePickerOptions` | `ClientFileSystem.openFile()`, `openFiles()` |
+| `SaveFilePickerOptions` | `ClientFileSystem.saveFile()` |
+| `DirectoryPickerOptions` | `ClientFileSystem.openDirectory()`, `listDirectory()` |
 | `FileTypeFilter` | File type restrictions in picker options |
 | `WellKnownDirectory` | `startIn` values for picker options |
 | `GetHandleOptions` | `getFileHandle()`, `getDirectoryHandle()` |
@@ -560,7 +560,7 @@ fs.openFile(
 ## Browserless Testing
 
 The `filesystem-api-browserless` module lets you write fast, deterministic unit
-tests for views that use `FileSystemAPI` — without launching a browser. It
+tests for views that use `ClientFileSystem` — without launching a browser. It
 replaces the real JavaScript bridge with an in-memory fake so that picker
 dialogs, file reads, and writes all resolve instantly in the JVM.
 
@@ -584,14 +584,14 @@ Add both the test-support module and the browserless test runner:
 
 ### Writing a test view
 
-Views are regular Vaadin components that use `FileSystemAPI`. The view contains
+Views are regular Vaadin components that use `ClientFileSystem`. The view contains
 UI controls wired to the API — tests interact with these controls, not the API
 directly.
 
 ```java
 @Route("editor")
 public class EditorView extends Div {
-    final FileSystemAPI fs = new FileSystemAPI(this);
+    final ClientFileSystem fs = new ClientFileSystem(this);
     final Input editor = new Input();
     final Span status = new Span();
     final NativeButton openBtn = new NativeButton("Open", e ->

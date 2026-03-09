@@ -39,11 +39,11 @@ mvn -pl filesystem-api,filesystem-api-browserless verify -DskipTests -Psemver \
 
 Two entry points, both instantiated with any Vaadin `Component` and bound to its DOM element:
 
-- `FileSystemAPI` — `CompletableFuture`-based (async)
-- `FileSystemCallbackAPI` — callback-based wrapper around `FileSystemAPI`
+- `ClientFileSystem` — `CompletableFuture`-based (async)
+- `CallbackClientFileSystem` — callback-based wrapper around `ClientFileSystem`
 
 ```
-FileSystemAPI / FileSystemCallbackAPI
+ClientFileSystem / CallbackClientFileSystem
   → JsBridge (package-private, singleton per component via ComponentUtil.setData)
     → inline JS via PendingJavaScriptResult → CompletableFuture
 ```

@@ -15,7 +15,7 @@
  */
 package com.github.mcollovati.vaadin.filesystem.demo.callback;
 
-import com.github.mcollovati.vaadin.filesystem.FileSystemCallbackAPI;
+import com.github.mcollovati.vaadin.filesystem.CallbackClientFileSystem;
 import com.github.mcollovati.vaadin.filesystem.demo.MainLayout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.H2;
@@ -29,11 +29,11 @@ import java.util.concurrent.CompletionException;
  */
 abstract class AbstractCallbackDemoView extends VerticalLayout {
 
-    private final FileSystemCallbackAPI fs;
+    private final CallbackClientFileSystem fs;
     private final Pre log;
 
     AbstractCallbackDemoView(String title, String description) {
-        fs = new FileSystemCallbackAPI(this);
+        fs = new CallbackClientFileSystem(this);
         log = new Pre();
         log.getStyle()
                 .set("background", "var(--lumo-contrast-5pct)")
@@ -53,7 +53,7 @@ abstract class AbstractCallbackDemoView extends VerticalLayout {
         add(log);
     }
 
-    FileSystemCallbackAPI fs() {
+    CallbackClientFileSystem fs() {
         return fs;
     }
 

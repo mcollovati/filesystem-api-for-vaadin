@@ -28,33 +28,33 @@ import java.util.logging.Logger;
 /**
  * Callback-based API for the browser's File System API.
  *
- * <p>Wraps the {@link FileSystemAPI} and converts
+ * <p>Wraps the {@link ClientFileSystem} and converts
  * {@code CompletableFuture}-based results into simple callbacks
  * using {@link SerializableConsumer} and {@link SerializableRunnable}.
  *
  * <pre>{@code
- * var fs = new FileSystemCallbackAPI(myView);
+ * var fs = new CallbackClientFileSystem(myView);
  *
  * fs.openFile(
  *     fileData -> log(fileData.getName()),
  *     error -> log("Error: " + error.getMessage()));
  * }</pre>
  *
- * @see FileSystemAPI
+ * @see ClientFileSystem
  */
-public final class FileSystemCallbackAPI implements Serializable {
+public final class CallbackClientFileSystem implements Serializable {
 
-    private static final Logger logger = Logger.getLogger(FileSystemCallbackAPI.class.getName());
+    private static final Logger logger = Logger.getLogger(CallbackClientFileSystem.class.getName());
 
-    private final FileSystemAPI api;
+    private final ClientFileSystem api;
 
     /**
      * Creates a new instance bound to the given component.
      *
      * @param component the component to bind to, not {@code null}
      */
-    public FileSystemCallbackAPI(Component component) {
-        this.api = new FileSystemAPI(component);
+    public CallbackClientFileSystem(Component component) {
+        this.api = new ClientFileSystem(component);
     }
 
     /**
@@ -62,7 +62,7 @@ public final class FileSystemCallbackAPI implements Serializable {
      *
      * @return the high-level API instance
      */
-    public FileSystemAPI api() {
+    public ClientFileSystem api() {
         return api;
     }
 

@@ -36,7 +36,7 @@ class JsBridgeCleanupTest extends BrowserlessTest {
     void detach_resets_initialized_flag() {
         CleanupTestView view = navigate(CleanupTestView.class);
 
-        FileSystemAPI api = new FileSystemAPI(view);
+        ClientFileSystem api = new ClientFileSystem(view);
         JsBridge bridge = api.getBridge();
         // Trigger initialization
         bridge.executeJs("return true;");
@@ -52,7 +52,7 @@ class JsBridgeCleanupTest extends BrowserlessTest {
     void re_attach_re_initializes_bridge() {
         CleanupTestView view = navigate(CleanupTestView.class);
 
-        FileSystemAPI api = new FileSystemAPI(view);
+        ClientFileSystem api = new ClientFileSystem(view);
         JsBridge bridge = api.getBridge();
         bridge.executeJs("return true;");
 
@@ -69,7 +69,7 @@ class JsBridgeCleanupTest extends BrowserlessTest {
     void cleanup_clears_detach_registration() {
         CleanupTestView view = navigate(CleanupTestView.class);
 
-        FileSystemAPI api = new FileSystemAPI(view);
+        ClientFileSystem api = new ClientFileSystem(view);
         JsBridge bridge = api.getBridge();
         bridge.executeJs("return true;");
 

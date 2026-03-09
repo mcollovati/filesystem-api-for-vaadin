@@ -33,7 +33,7 @@ class FileSystemTesterTest {
 
     @Route("editor")
     public static class EditorView extends Div {
-        final FileSystemAPI fs = new FileSystemAPI(this);
+        final ClientFileSystem fs = new ClientFileSystem(this);
         final Input editor = new Input();
         final Span status = new Span();
         final NativeButton openBtn = new NativeButton("Open", e -> fs.openFile().thenAccept(data -> {
@@ -49,7 +49,7 @@ class FileSystemTesterTest {
 
     @Route("multi-open")
     public static class MultiOpenView extends Div {
-        final FileSystemAPI fs = new FileSystemAPI(this);
+        final ClientFileSystem fs = new ClientFileSystem(this);
         final Span count = new Span();
         final Span contents = new Span();
         final NativeButton openBtn =
@@ -66,7 +66,7 @@ class FileSystemTesterTest {
 
     @Route("dir-browser")
     public static class DirectoryBrowserView extends Div {
-        final FileSystemAPI fs = new FileSystemAPI(this);
+        final ClientFileSystem fs = new ClientFileSystem(this);
         final Span listing = new Span();
         final Span entryCount = new Span();
         final NativeButton listBtn =
@@ -84,7 +84,7 @@ class FileSystemTesterTest {
 
     @Route("cancel")
     public static class CancelView extends Div {
-        final FileSystemAPI fs = new FileSystemAPI(this);
+        final ClientFileSystem fs = new ClientFileSystem(this);
         final Span status = new Span("idle");
         final NativeButton openBtn = new NativeButton(
                 "Open",
@@ -100,7 +100,7 @@ class FileSystemTesterTest {
 
     @Route("save-bytes")
     public static class SaveBytesView extends Div {
-        final FileSystemAPI fs = new FileSystemAPI(this);
+        final ClientFileSystem fs = new ClientFileSystem(this);
         final Span status = new Span();
         final NativeButton saveBtn = new NativeButton(
                 "Save", e -> fs.saveFile(new byte[] {1, 2, 3, 4}).thenAccept(v -> status.setText("saved")));
@@ -112,7 +112,7 @@ class FileSystemTesterTest {
 
     @Route("default-save")
     public static class DefaultSaveView extends Div {
-        final FileSystemAPI fs = new FileSystemAPI(this);
+        final ClientFileSystem fs = new ClientFileSystem(this);
         final Span status = new Span();
         final NativeButton saveBtn =
                 new NativeButton("Save", e -> fs.saveFile("content").thenAccept(v -> status.setText("saved")));

@@ -93,7 +93,7 @@ public final class FileSystemWritableFileStream implements Serializable {
      * the stream is not closed, written data is discarded.
      *
      * <p>Open streams are also automatically closed (best-effort) when the
-     * component bound to the {@link FileSystemAPI} is detached from the UI.
+     * component bound to the {@link ClientFileSystem} is detached from the UI.
      *
      * @return a future that completes when the stream is closed
      */

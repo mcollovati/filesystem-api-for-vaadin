@@ -22,10 +22,10 @@ import java.util.function.Consumer;
 
 /**
  * Entry point for setting up browserless tests with
- * {@link FileSystemAPI}.
+ * {@link ClientFileSystem}.
  *
  * <p>Installs a {@link FakeJsBridge} on a component so that all
- * {@link FileSystemAPI} operations run against an in-memory file system
+ * {@link ClientFileSystem} operations run against an in-memory file system
  * instead of browser JavaScript.
  *
  * <pre>{@code
