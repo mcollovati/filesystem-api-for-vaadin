@@ -18,6 +18,7 @@ Full API reference and usage guide. For a quick introduction, see [README.md](RE
 - [Error Handling](#error-handling)
 - [API Reference](#api-reference)
 - [Handle Lifecycle](#handle-lifecycle)
+- [Browserless Testing](#browserless-testing)
 
 ---
 
@@ -367,6 +368,19 @@ handle.queryPermission(PermissionMode.READWRITE).thenAccept(state -> {
 });
 ```
 
+For the common case of "query first, then request if needed", use
+`ensurePermission()` — a convenience method that combines both steps:
+
+```java
+handle.ensurePermission(PermissionMode.READWRITE).thenAccept(state -> {
+    if (state == PermissionState.GRANTED) {
+        // proceed with file operations
+    } else {
+        log("Permission denied");
+    }
+});
+```
+
 ---
 
 ## Error Handling
@@ -467,6 +481,18 @@ fs.openFile(
 | `FileSystemNotAllowedException` | Permission denied or picker cancelled |
 | `FileSystemTypeMismatchException` | Wrong handle kind (file vs directory) |
 
+### Browserless Test Support (`filesystem-api-browserless`)
+
+| Class | Description |
+|-------|-------------|
+| `FileSystemTester` | Entry point — builder installs a fake bridge on a component |
+| `FileSystemTester.Builder` | Fluent builder for file system state and picker responses |
+| `InMemoryFileSystem` | In-memory file tree for assertions |
+| `PickerResponse` | Functional interface defining fake picker behavior |
+| `FsNode` | Sealed interface for in-memory file system nodes |
+| `FsFile` | Mutable in-memory file node |
+| `FsDirectory` | Mutable in-memory directory node |
+
 ---
 
 ## Handle Lifecycle
@@ -477,3 +503,166 @@ fs.openFile(
 - **Auto-cleanup**: all handles and open writable streams are released when the
   bound component is detached from the UI
 - Handles are invalidated on page navigation or refresh
+
+---
+
+## Browserless Testing
+
+The `filesystem-api-browserless` module lets you write fast, deterministic unit
+tests for views that use `FileSystemAPI` — without launching a browser. It
+replaces the real JavaScript bridge with an in-memory fake so that picker
+dialogs, file reads, and writes all resolve instantly in the JVM.
+
+### Setup
+
+Add both the test-support module and the browserless test runner:
+
+```xml
+<dependency>
+    <groupId>com.github.mcollovati</groupId>
+    <artifactId>filesystem-api-browserless</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>com.vaadin</groupId>
+    <artifactId>browserless-test-junit6</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+### Writing a test view
+
+Views are regular Vaadin components that use `FileSystemAPI`. The view contains
+UI controls wired to the API — tests interact with these controls, not the API
+directly.
+
+```java
+@Route("editor")
+public class EditorView extends Div {
+    final FileSystemAPI fs = new FileSystemAPI(this);
+    final Input editor = new Input();
+    final Span status = new Span();
+    final NativeButton openBtn = new NativeButton("Open", e ->
+        fs.openFile().thenAccept(data -> {
+            editor.setValue(new String(data.getContent()));
+            status.setText(data.getName());
+        }));
+    final NativeButton saveBtn = new NativeButton("Save", e ->
+        fs.saveFile(editor.getValue()));
+
+    public EditorView() {
+        add(editor, openBtn, saveBtn, status);
+    }
+}
+```
+
+### FileSystemTester
+
+`FileSystemTester` is the entry point. Its builder lets you populate an
+in-memory file system and configure how pickers respond. Call `install()` to
+wire the fake bridge into the component.
+
+### Test pattern
+
+The typical pattern is: navigate to the view, install the tester, interact with
+UI components, and assert the resulting state.
+
+**Open a file and assert UI state:**
+
+```java
+@ViewPackages(classes = EditorView.class)
+class EditorTests extends BrowserlessTest {
+    @Test
+    void click_open_loads_file_content_into_editor() {
+        EditorView view = navigate(EditorView.class);
+        FileSystemTester.forComponent(view)
+                .withFile("notes.txt", "Hello!")
+                .onOpenFilePicker(PickerResponse.returning("notes.txt"))
+                .install();
+
+        test(view.openBtn).click();
+
+        assertEquals("Hello!", view.editor.getValue());
+        assertEquals("notes.txt", view.status.getText());
+    }
+}
+```
+
+**Save a file and assert file system state:**
+
+```java
+@Test
+void click_save_writes_editor_content_to_file() {
+    EditorView view = navigate(EditorView.class);
+    FileSystemTester tester = FileSystemTester.forComponent(view)
+            .onSaveFilePicker(PickerResponse.returningSingle("output.txt"))
+            .install();
+
+    view.editor.setValue("Saved!");
+    test(view.saveBtn).click();
+
+    assertEquals("Saved!", tester.fileSystem().file("output.txt").contentAsString());
+}
+```
+
+### Configuring picker responses
+
+Use `PickerResponse` factory methods to control what each picker returns:
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `returning(String...)` | `List<FileSystemFileHandle>` | Open picker returns named files from root |
+| `returningSingle(String)` | `FileSystemFileHandle` | Save picker returns/creates a single file |
+| `returningRoot()` | `FileSystemDirectoryHandle` | Directory picker returns root |
+| `returningDirectory(String)` | `FileSystemDirectoryHandle` | Directory picker returns named subdirectory |
+| `cancelling()` | *(fails)* | Simulates user cancelling the picker |
+
+**Picker cancellation:**
+
+```java
+FileSystemTester.forComponent(view)
+        .onOpenFilePicker(PickerResponse.cancelling())
+        .install();
+
+test(view.openBtn).click();
+assertEquals("cancelled", view.status.getText());
+```
+
+### Populating the file system
+
+The builder supports nested directories:
+
+```java
+FileSystemTester.forComponent(view)
+        .withDirectory("docs", docs -> docs
+            .withFile("readme.txt", "Read me")
+            .withDirectory("images"))
+        .install();
+```
+
+### Asserting file system state
+
+After tests run, use `InMemoryFileSystem` to inspect what the view wrote:
+
+- `tester.fileSystem().exists("path/to/file")` — check existence
+- `tester.fileSystem().file("path")` — get an `FsFile` for content assertions
+- `tester.fileSystem().directory("path")` — get an `FsDirectory` for children
+- `fsFile.contentAsString()` — read content as UTF-8 string
+- `fsFile.content()` — read raw bytes
+- `fsDirectory.children()` — list child nodes
+
+### Permission testing
+
+Configure the permission state returned by `queryPermission()` and
+`requestPermission()`:
+
+```java
+FileSystemTester.forComponent(view)
+        .withFile("a.txt", "data")
+        .withPermissionState(PermissionState.DENIED)
+        .install();
+
+test(view.checkBtn).click();
+assertEquals("denied", view.permStatus.getText());
+```

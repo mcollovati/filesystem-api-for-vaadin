@@ -5,6 +5,8 @@ A Vaadin add-on that provides a Java API for the browser's
 enabling server-side Java code to trigger file/directory pickers, read and write
 files, and traverse directory structures through native browser filesystem access.
 
+A public demo is available at https://filesystem-api-for-vaadin.up.railway.app/.
+
 ## Features
 
 - **File pickers** — open, save, and directory picker dialogs from server-side Java
@@ -28,6 +30,13 @@ for details.
 
 - Java 21+
 - Vaadin 25+
+
+## Modules
+
+| Module | Description |
+|--------|-------------|
+| `filesystem-api` | The add-on library — the only runtime dependency you need |
+| `filesystem-api-browserless` | Test-time companion for unit tests without a browser (see [Browserless Testing](DOCUMENTATION.md#browserless-testing)) |
 
 ## Installation
 
@@ -113,8 +122,8 @@ fs.saveFile(DownloadHandler.forFixedContent("report.csv",
         csvContent.getBytes(), "text/csv"));
 ```
 
-For the full API reference, detailed examples, and error handling guide, see
-[DOCUMENTATION.md](DOCUMENTATION.md).
+For the full API reference, detailed examples, error handling guide, and
+browserless testing setup, see [DOCUMENTATION.md](DOCUMENTATION.md).
 
 ## Building from Source
 
