@@ -71,6 +71,19 @@ public class MainLayout extends AppLayout {
                 "Streaming", com.github.mcollovati.vaadin.filesystem.demo.callback.StreamingDemoView.class));
         nav.addItem(callback);
 
+        var opfs = new SideNavItem("Origin Private File System");
+        opfs.addItem(
+                new SideNavItem("Overview", com.github.mcollovati.vaadin.filesystem.demo.opfs.OverviewDemoView.class));
+        opfs.addItem(
+                new SideNavItem("Read File", com.github.mcollovati.vaadin.filesystem.demo.opfs.ReadFileDemoView.class));
+        opfs.addItem(new SideNavItem(
+                "Write File", com.github.mcollovati.vaadin.filesystem.demo.opfs.WriteFileDemoView.class));
+        opfs.addItem(new SideNavItem(
+                "Directory", com.github.mcollovati.vaadin.filesystem.demo.opfs.DirectoryDemoView.class));
+        opfs.addItem(new SideNavItem(
+                "Streaming", com.github.mcollovati.vaadin.filesystem.demo.opfs.StreamingDemoView.class));
+        nav.addItem(opfs);
+
         var examples = new SideNavItem("Examples");
         examples.addItem(new SideNavItem("Contact Manager", ContactManagerDemoView.class));
         examples.addItem(new SideNavItem("Image Catalog", ImageCatalogDemoView.class));
