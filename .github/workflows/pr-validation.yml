@@ -136,7 +136,7 @@ jobs:
           -pl integration-tests -ntp -B
 
       - name: Run integration tests
-        run: mvn verify -Pit -Dsurefire.skip=true -ntp -B
+        run: mvn verify -Pit -pl integration-tests -ntp -B
 
       - name: Integration test report summary
         if: always()
