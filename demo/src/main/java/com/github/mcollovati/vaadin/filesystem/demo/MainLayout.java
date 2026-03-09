@@ -15,6 +15,11 @@
  */
 package com.github.mcollovati.vaadin.filesystem.demo;
 
+import com.github.mcollovati.vaadin.filesystem.demo.client.DirectoryDemoView;
+import com.github.mcollovati.vaadin.filesystem.demo.client.FilePickerDemoView;
+import com.github.mcollovati.vaadin.filesystem.demo.client.ReadFileDemoView;
+import com.github.mcollovati.vaadin.filesystem.demo.client.StreamingDemoView;
+import com.github.mcollovati.vaadin.filesystem.demo.client.WriteFileDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.contactmanager.ContactManagerDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.imagecatalog.ImageCatalogDemoView;
 import com.vaadin.flow.component.applayout.AppLayout;

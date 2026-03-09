@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.mcollovati.vaadin.filesystem.demo;
+package com.github.mcollovati.vaadin.filesystem.demo.client;
 
 import com.github.mcollovati.vaadin.filesystem.FileTypeFilter;
 import com.github.mcollovati.vaadin.filesystem.SaveFilePickerOptions;
+import com.github.mcollovati.vaadin.filesystem.demo.AbstractDemoView;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.Route;
