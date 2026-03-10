@@ -18,6 +18,8 @@ The demo starts on port 8080 by default. Set the `PORT` environment variable to 
 
 ## Docker
 
+Run from the project root directory (where the `Dockerfile` is located):
+
 ```bash
 docker build -t filesystem-api-demo .
 docker run -p 8080:8080 filesystem-api-demo
