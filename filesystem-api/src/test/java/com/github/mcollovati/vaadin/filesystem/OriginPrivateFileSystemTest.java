@@ -260,6 +260,40 @@ class OriginPrivateFileSystemTest {
     }
 
     @Test
+    void saveToDeviceRejectsNullPath() {
+        var opfs = createOpfs(new FakeBridge());
+        assertThrows(NullPointerException.class, () -> opfs.saveToDevice(null));
+    }
+
+    @Test
+    void saveToDeviceRejectsEmptyPath() {
+        var opfs = createOpfs(new FakeBridge());
+        assertThrows(IllegalArgumentException.class, () -> opfs.saveToDevice(""));
+    }
+
+    @Test
+    void saveToDeviceDelegatesWithDefaultName() {
+        var bridge = new FakeBridge();
+        var opfs = createOpfs(bridge);
+
+        opfs.saveToDevice("archive.zip").join();
+
+        assertEquals("archive.zip", bridge.saveToDevicePath);
+        assertNull(bridge.saveToDeviceDownloadName);
+    }
+
+    @Test
+    void saveToDeviceDelegatesWithCustomName() {
+        var bridge = new FakeBridge();
+        var opfs = createOpfs(bridge);
+
+        opfs.saveToDevice("data/archive.zip", "my-download.zip").join();
+
+        assertEquals("data/archive.zip", bridge.saveToDevicePath);
+        assertEquals("my-download.zip", bridge.saveToDeviceDownloadName);
+    }
+
+    @Test
     void listDelegatesEntriesToRoot() {
         var bridge = new FakeBridge();
         bridge.entries.add(new FileSystemFileHandle("f1", "file.txt", bridge));
@@ -300,6 +334,10 @@ class OriginPrivateFileSystemTest {
         String lastEntriesPath;
         UploadHandler lastUploadHandler;
         DownloadHandler lastDownloadHandler;
+        String saveToDevicePath;
+        String saveToDeviceDownloadName;
+        String handleSaveToDeviceId;
+        String handleSaveToDeviceDownloadName;
         private final AtomicInteger idCounter = new AtomicInteger();
 
         FakeBridge() {
@@ -378,6 +416,20 @@ class OriginPrivateFileSystemTest {
         @Override
         CompletableFuture<Void> opfsClear() {
             clearCalled = true;
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        CompletableFuture<Void> opfsSaveToDevice(String path, String downloadName) {
+            saveToDevicePath = path;
+            saveToDeviceDownloadName = downloadName;
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        CompletableFuture<Void> saveToDevice(String handleId, String downloadName) {
+            handleSaveToDeviceId = handleId;
+            handleSaveToDeviceDownloadName = downloadName;
             return CompletableFuture.completedFuture(null);
         }
     }

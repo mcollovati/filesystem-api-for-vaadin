@@ -245,32 +245,13 @@ public class ArchiveCreatorDemoView extends VerticalLayout {
                                     "application/zip",
                                     zipBytes.length)));
                 })
+                .thenRun(() -> appendLog("Archive saved to OPFS: " + finalArchiveName))
+                .thenCompose(v -> opfs.saveToDevice(finalArchiveName))
                 .thenRun(() -> {
-                    appendLog("Archive saved to OPFS: " + finalArchiveName);
-                    triggerBrowserDownload(finalArchiveName);
+                    appendLog("Download started: " + finalArchiveName);
                     refreshFileList();
                 })
                 .exceptionally(this::logError);
-    }
-
-    private void triggerBrowserDownload(String fileName) {
-        getElement()
-                .executeJs(
-                        """
-                const root = await navigator.storage.getDirectory();
-                const fileHandle = await root.getFileHandle($0);
-                const file = await fileHandle.getFile();
-                const url = URL.createObjectURL(file);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = $0;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                """,
-                        fileName);
-        appendLog("Download started: " + fileName);
     }
 
     private void onRemoveFile(StagedFile file) {

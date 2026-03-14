@@ -628,6 +628,39 @@ class JsBridge implements Serializable {
                 .whenComplete((result, error) -> element().removeAttribute(attr));
     }
 
+    /**
+     * JS snippet that triggers a browser download from a file handle
+     * variable {@code h}. Uses {@code $1} as the download name with a
+     * fallback to the file's own name.
+     */
+    private static final String JS_SAVE_TO_DEVICE =
+            """
+            const file = await h.getFile();
+            const url = URL.createObjectURL(file);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = $1 || file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);""";
+
+    CompletableFuture<Void> saveToDevice(String handleId, String downloadName) {
+        return executeVoidJs(
+                JS_TRY_CATCH.formatted(requireHandle("h", "$0") + JS_SAVE_TO_DEVICE), handleId, downloadName);
+    }
+
+    CompletableFuture<Void> opfsSaveToDevice(String path, String downloadName) {
+        return executeVoidJs(
+                JS_TRY_CATCH.formatted(opfsNavigateToParent("{}")
+                        + """
+                        const h = await dir.getFileHandle(leafName);
+                        """
+                        + JS_SAVE_TO_DEVICE),
+                path,
+                downloadName);
+    }
+
     void releaseHandle(String handleId) {
         ensureInitialized();
         element().executeJs("this.__fsApiHandles.delete($0);", handleId);

@@ -138,6 +138,29 @@ public final class FileSystemFileHandle extends AbstractFileSystemHandle {
     }
 
     /**
+     * Triggers a browser download of this file to the user's device.
+     *
+     * <p>The file's own name is used as the download filename.
+     *
+     * @return a future that completes when the download is triggered
+     * @see #saveToDevice(String)
+     */
+    public CompletableFuture<Void> saveToDevice() {
+        return saveToDevice(null);
+    }
+
+    /**
+     * Triggers a browser download of this file to the user's device.
+     *
+     * @param downloadName custom filename for the browser download,
+     *                     or {@code null} to use the file's own name
+     * @return a future that completes when the download is triggered
+     */
+    public CompletableFuture<Void> saveToDevice(String downloadName) {
+        return bridge().saveToDevice(handleId(), downloadName);
+    }
+
+    /**
      * Downloads content from the server into this file using the given
      * {@link DownloadHandler}.
      *

@@ -261,6 +261,33 @@ public final class OriginPrivateFileSystem implements Serializable {
         return getFileHandle(path, GetHandleOptions.creating()).thenCompose(file -> file.downloadFrom(handler));
     }
 
+    // -- Save to device --
+
+    /**
+     * Triggers a browser download of a file from OPFS to the user's device.
+     *
+     * <p>The leaf filename from the path is used as the download filename.
+     *
+     * @param path the {@code /}-separated path to the file
+     * @return a future that completes when the download is triggered
+     * @see #saveToDevice(String, String)
+     */
+    public CompletableFuture<Void> saveToDevice(String path) {
+        return saveToDevice(path, null);
+    }
+
+    /**
+     * Triggers a browser download of a file from OPFS to the user's device.
+     *
+     * @param path         the {@code /}-separated path to the file
+     * @param downloadName custom filename for the browser download,
+     *                     or {@code null} to use the leaf filename
+     * @return a future that completes when the download is triggered
+     */
+    public CompletableFuture<Void> saveToDevice(String path, String downloadName) {
+        return getBridge().opfsSaveToDevice(normalizePath(path), downloadName);
+    }
+
     // -- Directory listing --
 
     /**
