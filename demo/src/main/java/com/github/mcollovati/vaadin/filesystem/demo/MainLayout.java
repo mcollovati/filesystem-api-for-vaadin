@@ -20,6 +20,7 @@ import com.github.mcollovati.vaadin.filesystem.demo.client.FilePickerDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.client.ReadFileDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.client.StreamingDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.client.WriteFileDemoView;
+import com.github.mcollovati.vaadin.filesystem.demo.archivecreator.ArchiveCreatorDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.contactmanager.ContactManagerDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.imagecatalog.ImageCatalogDemoView;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -87,6 +88,7 @@ public class MainLayout extends AppLayout {
         var examples = new SideNavItem("Examples");
         examples.addItem(new SideNavItem("Contact Manager", ContactManagerDemoView.class));
         examples.addItem(new SideNavItem("Image Catalog", ImageCatalogDemoView.class));
+        examples.addItem(new SideNavItem("Archive Creator", ArchiveCreatorDemoView.class));
         nav.addItem(examples);
 
         return nav;
