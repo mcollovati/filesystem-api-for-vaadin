@@ -572,7 +572,7 @@ Add both the test-support module and the browserless test runner:
 <dependency>
     <groupId>com.github.mcollovati</groupId>
     <artifactId>filesystem-api-browserless</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.1</version>
     <scope>test</scope>
 </dependency>
 <dependency>
