@@ -22,7 +22,7 @@
         <junit.version>6.0.3</junit.version>
         <browserless-test.version>1.0.0</browserless-test.version>
         <playwright.version>1.58.0</playwright.version>
-        <jetty.version>12.1.5</jetty.version>
+        <jetty.version>12.1.8</jetty.version>
         <spotless.version>3.4.0</spotless.version>
         <maven-surefire.version>3.5.5</maven-surefire.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
