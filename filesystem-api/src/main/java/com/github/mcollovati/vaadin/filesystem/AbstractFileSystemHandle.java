@@ -15,8 +15,14 @@
  */
 package com.github.mcollovati.vaadin.filesystem;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.trigger.internal.ClickTrigger;
+import com.vaadin.flow.function.SerializableConsumer;
+import com.vaadin.flow.shared.Registration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Base implementation of {@link FileSystemHandle} providing shared state
@@ -24,6 +30,8 @@ import java.util.concurrent.CompletableFuture;
  */
 abstract sealed class AbstractFileSystemHandle implements FileSystemHandle
         permits FileSystemFileHandle, FileSystemDirectoryHandle {
+
+    private static final Logger logger = Logger.getLogger(AbstractFileSystemHandle.class.getName());
 
     private final String handleId;
     private final String name;
@@ -53,6 +61,35 @@ abstract sealed class AbstractFileSystemHandle implements FileSystemHandle
     @Override
     public CompletableFuture<PermissionState> requestPermission(PermissionMode mode) {
         return bridge.requestPermission(handleId, mode);
+    }
+
+    @Override
+    public Registration requestPermissionTriggeredBy(
+            Component source,
+            PermissionMode mode,
+            SerializableConsumer<PermissionState> onSuccess,
+            SerializableConsumer<Throwable> onError) {
+        bridge.ensureInitialized();
+        PermissionPromiseAction action = new PermissionPromiseAction(
+                bridge.element(),
+                handleId,
+                mode.getJsValue(),
+                value -> {
+                    if (onSuccess != null) {
+                        onSuccess.accept(PermissionState.fromJsValue(value));
+                    }
+                },
+                error -> {
+                    Throwable mapped = JsBridge.mapError(error.name(), error.message());
+                    if (onError != null) {
+                        onError.accept(mapped);
+                    } else {
+                        logger.log(Level.FINE, "File System API operation failed", mapped);
+                    }
+                });
+        ClickTrigger trigger = new ClickTrigger(source);
+        trigger.triggers(action);
+        return trigger::remove;
     }
 
     @Override

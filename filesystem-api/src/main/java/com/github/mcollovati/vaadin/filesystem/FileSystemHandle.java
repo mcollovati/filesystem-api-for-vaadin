@@ -15,6 +15,9 @@
  */
 package com.github.mcollovati.vaadin.filesystem;
 
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.function.SerializableConsumer;
+import com.vaadin.flow.shared.Registration;
 import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
 
@@ -96,6 +99,25 @@ public sealed interface FileSystemHandle extends Serializable permits AbstractFi
                         ? CompletableFuture.completedFuture(state)
                         : requestPermission(mode));
     }
+
+    /**
+     * Requests permission for this handle inside a user gesture.
+     *
+     * <p>Arms a click trigger on the given component so that the permission
+     * request is invoked directly inside the browser's click handler,
+     * preserving the user gesture. The request is repeated on every click.
+     *
+     * @param source    the component whose clicks request the permission
+     * @param mode      the permission mode to request
+     * @param onSuccess called with the resulting permission state
+     * @param onError   called if an error occurs
+     * @return a registration that disarms the click trigger
+     */
+    Registration requestPermissionTriggeredBy(
+            Component source,
+            PermissionMode mode,
+            SerializableConsumer<PermissionState> onSuccess,
+            SerializableConsumer<Throwable> onError);
 
     /**
      * Releases this handle, removing it from the client-side registry.

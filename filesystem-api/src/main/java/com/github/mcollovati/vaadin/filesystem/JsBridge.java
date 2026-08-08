@@ -111,7 +111,7 @@ class JsBridge implements Serializable {
     /**
      * Maps JS DOMException names to Java exception factory methods.
      */
-    private static final Map<String, ExceptionFactory> ERROR_MAP = Map.of(
+    static final Map<String, ExceptionFactory> ERROR_MAP = Map.of(
             "NotFoundError", FileSystemNotFoundException::new,
             "NotAllowedError", FileSystemNotAllowedException::new,
             "AbortError", FileSystemNotAllowedException::new,
@@ -670,7 +670,7 @@ class JsBridge implements Serializable {
         return ((AbstractFileSystemHandle) handle).handleId();
     }
 
-    private void ensureInitialized() {
+    void ensureInitialized() {
         if (!initialized) {
             element()
                     .executeJs(
@@ -752,8 +752,26 @@ class JsBridge implements Serializable {
         return new FileSystemApiException(message != null ? message : "Unknown File System API error", error);
     }
 
-    private Element element() {
+    Element element() {
         return component.getElement();
+    }
+
+    /**
+     * Maps a JS error name and message pair (e.g. from a rejected promise)
+     * to the appropriate {@link FileSystemApiException} subclass.
+     *
+     * @param name    the JS error name, or {@code null}
+     * @param message the error message, or {@code null}
+     * @return the mapped exception
+     */
+    static FileSystemApiException mapError(String name, String message) {
+        String errorName = name != null && !name.isEmpty() ? name : "Error";
+        ExceptionFactory factory = ERROR_MAP.get(errorName);
+        if (factory != null) {
+            return factory.create(message != null ? message : errorName);
+        }
+        String text = message != null ? errorName + ": " + message : errorName;
+        return new FileSystemApiException(text);
     }
 
     /**

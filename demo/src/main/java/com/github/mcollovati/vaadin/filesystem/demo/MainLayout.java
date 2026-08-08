@@ -19,6 +19,7 @@ import com.github.mcollovati.vaadin.filesystem.demo.client.DirectoryDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.client.FilePickerDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.client.ReadFileDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.client.StreamingDemoView;
+import com.github.mcollovati.vaadin.filesystem.demo.client.TriggeredDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.client.WriteFileDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.archivecreator.ArchiveCreatorDemoView;
 import com.github.mcollovati.vaadin.filesystem.demo.contactmanager.ContactManagerDemoView;
@@ -57,6 +58,7 @@ public class MainLayout extends AppLayout {
         highLevel.addItem(new SideNavItem("Write File", WriteFileDemoView.class));
         highLevel.addItem(new SideNavItem("Directory", DirectoryDemoView.class));
         highLevel.addItem(new SideNavItem("Streaming", StreamingDemoView.class));
+        highLevel.addItem(new SideNavItem("Triggered Operations", TriggeredDemoView.class));
         nav.addItem(highLevel);
 
         var callback = new SideNavItem("Callback API");
