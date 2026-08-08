@@ -342,6 +342,7 @@
                             <mainClass>com.microsoft.playwright.CLI</mainClass>
                             <arguments>
                                 <argument>install</argument>
+                                <argument>--with-deps</argument>
                                 <argument>chromium</argument>
                             </arguments>
                         </configuration>
