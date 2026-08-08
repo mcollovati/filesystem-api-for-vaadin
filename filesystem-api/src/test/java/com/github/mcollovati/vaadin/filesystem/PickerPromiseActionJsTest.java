@@ -37,9 +37,9 @@ class PickerPromiseActionJsTest {
                 error -> {});
         JsFunction js = action.toPromiseJs(trigger);
         String body = js.getBody();
-        assertTrue(body.contains("await window.showOpenFilePicker(opts)"), body);
+        assertTrue(body.contains("window.showOpenFilePicker(opts)"), body);
         assertTrue(body.contains("el.__fsApiHandles.set(id, h)"), body);
-        assertTrue(body.contains("return handles.map(h =>"), body);
+        assertTrue(body.contains(".then(handles => handles.map(h =>"), body);
     }
 
     @Test
@@ -47,8 +47,8 @@ class PickerPromiseActionJsTest {
         PickerPromiseAction action = new PickerPromiseAction(
                 PickerPromiseAction.SAVE_FILE, null, new Element("div"), infos -> {}, error -> {});
         String body = action.toPromiseJs(trigger).getBody();
-        assertTrue(body.contains("await window.showSaveFilePicker(opts)"), body);
-        assertTrue(body.contains("handles = [await window.showSaveFilePicker(opts)]"), body);
+        assertTrue(body.contains("window.showSaveFilePicker(opts)"), body);
+        assertTrue(body.contains(".then(handle => [handle])"), body);
     }
 
     @Test
@@ -56,6 +56,7 @@ class PickerPromiseActionJsTest {
         PickerPromiseAction action = new PickerPromiseAction(
                 PickerPromiseAction.OPEN_DIRECTORY, null, new Element("div"), infos -> {}, error -> {});
         String body = action.toPromiseJs(trigger).getBody();
-        assertTrue(body.contains("await window.showDirectoryPicker(opts)"), body);
+        assertTrue(body.contains("window.showDirectoryPicker(opts)"), body);
+        assertTrue(body.contains(".then(handle => [handle])"), body);
     }
 }

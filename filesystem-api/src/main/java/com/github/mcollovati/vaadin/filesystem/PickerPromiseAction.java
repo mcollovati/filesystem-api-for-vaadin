@@ -37,7 +37,11 @@ final class PickerPromiseAction extends PromiseAction<HandleInfo[]> {
      * JS template for the picker action. {@code $0} is the picker options
      * object, {@code $1} the element that hosts the handle registry. The
      * {@code %s} placeholder receives the picker invocation expression, which
-     * must bind the picked handles to a {@code handles} array.
+     * must evaluate to a Promise resolving to an array of picked handles.
+     *
+     * <p>Flow materialises the function with {@code new Function(...)}, so the
+     * body must not use {@code await}; the promise is chained with
+     * {@code .then()} instead.
      */
     private static final String PICKER_JS_TEMPLATE =
             """
@@ -46,22 +50,20 @@ final class PickerPromiseAction extends PromiseAction<HandleInfo[]> {
             if (opts.startIn && el.__fsApiHandles.has(opts.startIn)) {
                 opts.startIn = el.__fsApiHandles.get(opts.startIn);
             }
-            let handles;
-            %s
-            return handles.map(h => {
+            return %s.then(handles => handles.map(h => {
                 const id = String(el.__fsApiNextId++);
                 el.__fsApiHandles.set(id, h);
                 return {id: id, name: h.name, kind: h.kind};
-            });""";
+            }));""";
 
     /** Picker expression for {@code window.showOpenFilePicker}. */
-    static final String OPEN_FILE = "handles = await window.showOpenFilePicker(opts);";
+    static final String OPEN_FILE = "window.showOpenFilePicker(opts)";
 
     /** Picker expression for {@code window.showSaveFilePicker}. */
-    static final String SAVE_FILE = "handles = [await window.showSaveFilePicker(opts)];";
+    static final String SAVE_FILE = "window.showSaveFilePicker(opts).then(handle => [handle])";
 
     /** Picker expression for {@code window.showDirectoryPicker}. */
-    static final String OPEN_DIRECTORY = "handles = [await window.showDirectoryPicker(opts)];";
+    static final String OPEN_DIRECTORY = "window.showDirectoryPicker(opts).then(handle => [handle])";
 
     private final String js;
     private final Object options;
