@@ -126,6 +126,9 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Install library module to local Maven repo
+        run: mvn install -pl filesystem-api -DskipTests -ntp -B
+
       - name: Install Playwright browsers
         run: >-
           mvn exec:java
