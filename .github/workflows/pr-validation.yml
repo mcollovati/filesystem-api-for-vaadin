@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
 
@@ -126,20 +126,11 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Install library module to local Maven repo
-        run: mvn install -pl filesystem-api -DskipTests -ntp -B
-
       - name: Install Playwright browsers
-        run: >-
-          mvn exec:java
-          -e
-          -Dexec.mainClass=com.microsoft.playwright.CLI
-          -Dexec.classpathScope=test
-          -Dexec.args="install --with-deps chromium"
-          -pl integration-tests -ntp -B
+        run: mvn -Dinstall-browser -ntp -B
 
       - name: Run integration tests
-        run: mvn verify -Pit -pl integration-tests -ntp -B
+        run: mvn verify -Pit -pl integration-tests -am -DskipUnitTests=true -ntp -B
 
       - name: Integration test report summary
         if: always()
@@ -202,7 +193,7 @@ jobs:
       LIBRARY_MODULES: filesystem-api,filesystem-api-browserless
     steps:
       - name: Checkout full history
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
