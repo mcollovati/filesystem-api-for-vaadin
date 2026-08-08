@@ -18,9 +18,9 @@
     </modules>
 
     <properties>
-        <vaadin.version>25.1.5</vaadin.version>
+        <vaadin.version>25.2.5</vaadin.version>
         <junit.version>6.1.0</junit.version>
-        <browserless-test.version>1.0.0</browserless-test.version>
+        <browserless-test.version>1.1.2</browserless-test.version>
         <playwright.version>1.60.0</playwright.version>
         <jetty.version>12.1.8</jetty.version>
         <spotless.version>3.5.1</spotless.version>
@@ -63,18 +63,18 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.vaadin</groupId>
-                <artifactId>vaadin-bom</artifactId>
-                <type>pom</type>
-                <scope>import</scope>
-                <version>${vaadin.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
                 <version>${junit.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <type>pom</type>
+                <scope>import</scope>
+                <version>${vaadin.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.vaadin</groupId>
