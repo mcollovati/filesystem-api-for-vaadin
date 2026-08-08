@@ -126,20 +126,11 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Install library module to local Maven repo
-        run: mvn install -pl filesystem-api -DskipTests -ntp -B
-
       - name: Install Playwright browsers
-        run: >-
-          mvn exec:java
-          -e
-          -Dexec.mainClass=com.microsoft.playwright.CLI
-          -Dexec.classpathScope=test
-          -Dexec.args="install --with-deps chromium"
-          -pl integration-tests -ntp -B
+        run: mvn -Dinstall-browser -ntp -B
 
       - name: Run integration tests
-        run: mvn verify -Pit -pl integration-tests -ntp -B
+        run: mvn verify -Pit -pl integration-tests -am -DskipUnitTests=true -ntp -B
 
       - name: Integration test report summary
         if: always()
