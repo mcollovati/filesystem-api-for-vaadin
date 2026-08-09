@@ -23,7 +23,7 @@
         <browserless-test.version>1.1.2</browserless-test.version>
         <playwright.version>1.60.0</playwright.version>
         <jetty.version>12.1.12</jetty.version>
-        <spotless.version>3.5.1</spotless.version>
+        <spotless.version>3.9.0</spotless.version>
         <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
         <maven-surefire.version>3.5.5</maven-surefire.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
