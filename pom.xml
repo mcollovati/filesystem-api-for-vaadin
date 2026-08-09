@@ -21,7 +21,7 @@
         <vaadin.version>25.2.5</vaadin.version>
         <junit.version>6.1.0</junit.version>
         <browserless-test.version>1.1.2</browserless-test.version>
-        <playwright.version>1.60.0</playwright.version>
+        <playwright.version>1.62.0</playwright.version>
         <jetty.version>12.1.12</jetty.version>
         <spotless.version>3.5.1</spotless.version>
         <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
