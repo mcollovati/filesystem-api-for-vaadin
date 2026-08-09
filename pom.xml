@@ -31,7 +31,7 @@
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
-        <jreleaser-maven-plugin.version>1.24.0</jreleaser-maven-plugin.version>
+        <jreleaser-maven-plugin.version>1.25.0</jreleaser-maven-plugin.version>
         <skipUnitTests>false</skipUnitTests>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
