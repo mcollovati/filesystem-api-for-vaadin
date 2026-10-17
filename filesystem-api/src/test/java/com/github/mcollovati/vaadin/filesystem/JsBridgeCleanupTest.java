@@ -39,8 +39,8 @@ class JsBridgeCleanupTest extends BrowserlessTest {
         ClientFileSystem api = new ClientFileSystem(view);
         JsBridge bridge = api.getBridge();
         // Trigger initialization
-        bridge.executeJs("return true;");
-        assertTrue(bridge.initialized, "bridge should be initialized after executeJs");
+        bridge.initialize();
+        assertTrue(bridge.initialized, "bridge should be initialized after initialize");
 
         // Simulate detach by removing from parent
         view.getElement().removeFromTree();
@@ -54,14 +54,14 @@ class JsBridgeCleanupTest extends BrowserlessTest {
 
         ClientFileSystem api = new ClientFileSystem(view);
         JsBridge bridge = api.getBridge();
-        bridge.executeJs("return true;");
+        bridge.initialize();
 
         // Detach
         view.getElement().removeFromTree();
         assertFalse(bridge.initialized);
 
         // Re-attach and use again
-        bridge.executeJs("return true;");
+        bridge.initialize();
         assertTrue(bridge.initialized, "bridge should re-initialize after re-attach");
     }
 
@@ -71,7 +71,7 @@ class JsBridgeCleanupTest extends BrowserlessTest {
 
         ClientFileSystem api = new ClientFileSystem(view);
         JsBridge bridge = api.getBridge();
-        bridge.executeJs("return true;");
+        bridge.initialize();
 
         // First detach triggers cleanup
         view.getElement().removeFromTree();
@@ -79,7 +79,7 @@ class JsBridgeCleanupTest extends BrowserlessTest {
 
         // Re-attach, re-initialize and detach again — should not fail
         UI.getCurrent().getElement().appendChild(view.getElement());
-        bridge.executeJs("return true;");
+        bridge.initialize();
         assertTrue(bridge.initialized);
 
         view.getElement().removeFromTree();

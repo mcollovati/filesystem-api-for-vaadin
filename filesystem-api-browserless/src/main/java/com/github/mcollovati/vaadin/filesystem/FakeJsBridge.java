@@ -16,7 +16,6 @@
 package com.github.mcollovati.vaadin.filesystem;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.page.PendingJavaScriptResult;
 import com.vaadin.flow.server.streams.DownloadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
 import java.util.ArrayList;
@@ -74,13 +73,18 @@ class FakeJsBridge extends JsBridge {
     }
 
     @Override
-    PendingJavaScriptResult executeJs(String expression, Object... params) {
-        throw new UnsupportedOperationException("FakeJsBridge does not execute JavaScript");
+    CompletableFuture<Boolean> isSupported() {
+        return CompletableFuture.completedFuture(true);
     }
 
     @Override
-    CompletableFuture<Void> executeVoidJs(String expression, Object... params) {
-        throw new UnsupportedOperationException("FakeJsBridge does not execute JavaScript");
+    void initialize() {
+        this.initialized = true;
+    }
+
+    @Override
+    void cleanup() {
+        this.initialized = false;
     }
 
     @Override

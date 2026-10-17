@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 
@@ -43,70 +44,6 @@ import tools.jackson.databind.JsonNode;
  * {@link #getForComponent(Component)}.
  */
 class JsBridge implements Serializable {
-
-    /**
-     * JS snippet that copies the options parameter ($0) and resolves
-     * {@code startIn} if it refers to a registered handle.
-     */
-    private static final String RESOLVE_START_IN =
-            """
-            const opts = Object.assign({}, $0);
-            if (opts.startIn && this.__fsApiHandles.has(opts.startIn)) {
-                opts.startIn = this.__fsApiHandles.get(opts.startIn);
-            }""";
-
-    /**
-     * JS snippet that registers an array of handles into the registry and
-     * returns their metadata. Expects a {@code handles} variable to be in
-     * scope.
-     */
-    private static final String REGISTER_HANDLES =
-            """
-            return handles.map(h => {
-                const id = String(this.__fsApiNextId++);
-                this.__fsApiHandles.set(id, h);
-                return {id: id, name: h.name, kind: h.kind};
-            });""";
-
-    /**
-     * JS template that wraps an expression in a try-catch block. Catches
-     * {@code DOMException} errors and re-throws them with a structured
-     * message containing the error name, allowing server-side mapping to
-     * specific Java exception types. Use with {@link String#formatted}.
-     */
-    private static final String JS_TRY_CATCH =
-            """
-            try {
-            %s
-            } catch(__e) {
-                throw new Error((__e.name || 'Error') + ': ' + __e.message);
-            }""";
-
-    /**
-     * Returns a JS snippet that retrieves a handle from the registry and
-     * throws a descriptive {@code NotFoundError} if the handle is missing
-     * (e.g. after {@code release()} was called).
-     */
-    private static String requireHandle(String varName, String paramRef) {
-        return """
-                const %s = this.__fsApiHandles.get(%s);
-                if (!%s) throw new DOMException('Handle not found (released or invalid)', 'NotFoundError');
-                """
-                .formatted(varName, paramRef, varName);
-    }
-
-    /**
-     * Returns a JS snippet that retrieves a writable stream from the
-     * registry and throws a descriptive {@code NotFoundError} if the
-     * stream is missing (e.g. after it was closed).
-     */
-    private static String requireWritable(String varName, String paramRef) {
-        return """
-                const %s = this.__fsApiWritables.get(%s);
-                if (!%s) throw new DOMException('Writable stream not found (closed or invalid)', 'NotFoundError');
-                """
-                .formatted(varName, paramRef, varName);
-    }
 
     /**
      * Maps JS DOMException names to Java exception factory methods.
@@ -143,55 +80,38 @@ class JsBridge implements Serializable {
         return bridge;
     }
 
-    PendingJavaScriptResult executeJs(String expression, Object... params) {
-        ensureInitialized();
-        return element().executeJs(expression, params);
+    CompletableFuture<Boolean> isSupported() {
+        return element().executeJs(FileSystemJS.Support.class).isSupported().toCompletableFuture(Boolean.class);
     }
 
-    CompletableFuture<Void> executeVoidJs(String expression, Object... params) {
-        return mapErrors(
-                executeJs(expression, params).toCompletableFuture(String.class).thenApply(ignored -> null));
+    private <T> T executeJs(Class<T> definitionType) {
+        ensureInitialized();
+        return element().executeJs(definitionType);
     }
 
     CompletableFuture<Boolean> isSameEntry(String handleId1, String handleId2) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(requireHandle("h1", "$0")
-                                + requireHandle("h2", "$1")
-                                + "return await h1.isSameEntry(h2);"),
-                        handleId1,
-                        handleId2)
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .isSameEntry(handleId1, handleId2)
                 .toCompletableFuture(Boolean.class));
     }
 
     CompletableFuture<PermissionState> queryPermission(String handleId, PermissionMode mode) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("h", "$0") + "return await h.queryPermission({mode: $1});"),
-                        handleId,
-                        mode.getJsValue())
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .queryPermission(handleId, mode)
                 .toCompletableFuture(String.class)
                 .thenApply(PermissionState::fromJsValue));
     }
 
     CompletableFuture<PermissionState> requestPermission(String handleId, PermissionMode mode) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("h", "$0") + "return await h.requestPermission({mode: $1});"),
-                        handleId,
-                        mode.getJsValue())
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .requestPermission(handleId, mode)
                 .toCompletableFuture(String.class)
                 .thenApply(PermissionState::fromJsValue));
     }
 
     CompletableFuture<List<FileSystemFileHandle>> showOpenFilePicker(OpenFilePickerOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(RESOLVE_START_IN
-                                + """
-
-                        const handles = await window.showOpenFilePicker(opts);
-                        """
-                                + REGISTER_HANDLES),
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Picker.class)
+                .showOpenFilePicker(options)
                 .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
                 .thenApply(infos -> infos.stream()
                         .map(info -> new FileSystemFileHandle(info.id(), info.name(), this))
@@ -199,14 +119,8 @@ class JsBridge implements Serializable {
     }
 
     CompletableFuture<FileSystemFileHandle> showSaveFilePicker(SaveFilePickerOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(RESOLVE_START_IN
-                                + """
-
-                        const handles = [await window.showSaveFilePicker(opts)];
-                        """
-                                + REGISTER_HANDLES),
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Picker.class)
+                .showSaveFilePicker(options)
                 .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
                 .thenApply(infos -> infos.stream()
                         .map(info -> new FileSystemFileHandle(info.id(), info.name(), this))
@@ -215,104 +129,31 @@ class JsBridge implements Serializable {
     }
 
     CompletableFuture<FileSystemDirectoryHandle> getOriginPrivateDirectory() {
-        return mapErrors(executeJs(JS_TRY_CATCH.formatted(
-                        """
-                        const handle = await navigator.storage.getDirectory();
-                        """
-                                + REGISTER_SINGLE_HANDLE))
+        return mapErrors(executeJs(FileSystemJS.Picker.class)
+                .getOriginPrivateDirectory()
                 .toCompletableFuture(new TypeReference<HandleInfo>() {})
                 .thenApply(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this)));
     }
 
     // -- OPFS path-based operations (single roundtrip) --
 
-    /**
-     * JS snippet that navigates from the OPFS root through all segments
-     * of the path in {@code $0}. After execution, {@code dir} holds the
-     * target directory.
-     *
-     * @param dirOptions the JS expression for the options passed to
-     *                   {@code getDirectoryHandle} calls
-     *                   (e.g. {@code "$1"}, {@code "{}"} or
-     *                   {@code "{create:true}"})
-     * @param excludeLeaf if {@code true}, the last segment is skipped
-     *                    (caller handles it as the leaf); if {@code false},
-     *                    all segments are navigated
-     */
-    private static String opfsNavigateSegments(String dirOptions, boolean excludeLeaf) {
-        return """
-                const root = await navigator.storage.getDirectory();
-                const segments = $0.split('/').filter(s => s.length > 0);
-                let dir = root;
-                for (let i = 0; i < segments.length%s; i++) {
-                    dir = await dir.getDirectoryHandle(segments[i], %s);
-                }
-                """
-                .formatted(excludeLeaf ? " - 1" : "", dirOptions);
-    }
-
-    /**
-     * JS snippet that navigates from the OPFS root to the parent of the
-     * last path segment. After execution, {@code dir} holds the parent
-     * directory and {@code leafName} the final path segment.
-     *
-     * @param dirOptions the JS expression for the options passed to
-     *                   intermediate {@code getDirectoryHandle} calls
-     *                   (e.g. {@code "$1"} or {@code "{create:true}"})
-     */
-    private static String opfsNavigateToParent(String dirOptions) {
-        return opfsNavigateSegments(dirOptions, true)
-                + """
-                const leafName = segments[segments.length - 1];
-                """;
-    }
-
-    // opfsNavigateToParent() provides `dir` (parent directory) and
-    // `leafName` (final path segment); REGISTER_SINGLE_HANDLE reads `handle`.
-
     CompletableFuture<FileSystemFileHandle> opfsGetFileHandle(String path, GetHandleOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(opfsNavigateToParent("$1")
-                                + """
-                                const handle = await dir.getFileHandle(leafName, $1);
-                                """
-                                + REGISTER_SINGLE_HANDLE),
-                        path,
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Opfs.class)
+                .opfsGetFileHandle(path, options)
                 .toCompletableFuture(new TypeReference<HandleInfo>() {})
                 .thenApply(info -> new FileSystemFileHandle(info.id(), info.name(), this)));
     }
 
     CompletableFuture<FileSystemDirectoryHandle> opfsGetDirectoryHandle(String path, GetHandleOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(opfsNavigateToParent("$1")
-                                + """
-                                const handle = await dir.getDirectoryHandle(leafName, $1);
-                                """
-                                + REGISTER_SINGLE_HANDLE),
-                        path,
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Opfs.class)
+                .opfsGetDirectoryHandle(path, options)
                 .toCompletableFuture(new TypeReference<HandleInfo>() {})
                 .thenApply(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this)));
     }
 
-    // dir and leafName provided by opfsNavigateToParent()
     CompletableFuture<FileData> opfsReadFile(String path) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                opfsNavigateToParent("{}")
-                                        + """
-                                const h = await dir.getFileHandle(leafName);
-                                const file = await h.getFile();
-                                const buf = await file.arrayBuffer();
-                                const bytes = new Uint8Array(buf);
-                                let binary = '';
-                                for (let i = 0; i < bytes.length; i++) {
-                                    binary += String.fromCharCode(bytes[i]);
-                                }
-                                return {name: file.name, size: file.size, type: file.type,
-                                    lastModified: file.lastModified, content: btoa(binary)};"""),
-                        path)
+        return mapErrors(executeJs(FileSystemJS.Opfs.class)
+                .opfsReadFile(path)
                 .toCompletableFuture(JsonNode.class)
                 .thenApply(node -> new FileData(
                         node.path("name").asString(),
@@ -322,54 +163,18 @@ class JsBridge implements Serializable {
                         Base64.getDecoder().decode(node.path("content").asString()))));
     }
 
-    // dir and leafName provided by opfsNavigateToParent()
     CompletableFuture<Void> opfsWriteText(String path, String text) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        opfsNavigateToParent("{create:true}")
-                                + """
-                        const h = await dir.getFileHandle(leafName, {create:true});
-                        const w = await h.createWritable();
-                        await w.write($1);
-                        await w.close();"""),
-                path,
-                text);
+        return runVoid(() -> executeJs(FileSystemJS.Opfs.class).opfsWriteText(path, text));
     }
 
-    // dir and leafName provided by opfsNavigateToParent()
     CompletableFuture<Void> opfsWriteBytes(String path, byte[] data) {
         String base64 = Base64.getEncoder().encodeToString(data);
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        opfsNavigateToParent("{create:true}")
-                                + """
-                        const h = await dir.getFileHandle(leafName, {create:true});
-                        const w = await h.createWritable();
-                        const binary = atob($1);
-                        const bytes = new Uint8Array(binary.length);
-                        for (let i = 0; i < binary.length; i++) {
-                            bytes[i] = binary.charCodeAt(i);
-                        }
-                        await w.write(bytes);
-                        await w.close();"""),
-                path,
-                base64);
+        return runVoid(() -> executeJs(FileSystemJS.Opfs.class).opfsWriteBytes(path, base64));
     }
 
-    // dir provided by opfsNavigateSegments()
     CompletableFuture<List<FileSystemHandle>> opfsEntries(String path) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                opfsNavigateSegments("{}", false)
-                                        + """
-                                const result = [];
-                                for await (const [name, handle] of dir.entries()) {
-                                    const id = String(this.__fsApiNextId++);
-                                    this.__fsApiHandles.set(id, handle);
-                                    result.push({id: id, name: handle.name, kind: handle.kind});
-                                }
-                                return result;"""),
-                        path)
+        return mapErrors(executeJs(FileSystemJS.Opfs.class)
+                .opfsEntries(path, GetHandleOptions.builder().build())
                 .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
                 .thenApply(infos -> infos.stream()
                         .map(info -> {
@@ -381,35 +186,17 @@ class JsBridge implements Serializable {
                         .toList()));
     }
 
-    // dir and leafName provided by opfsNavigateToParent()
     CompletableFuture<Void> opfsRemoveEntry(String path, RemoveEntryOptions options) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(opfsNavigateToParent("{}")
-                        + """
-                        await dir.removeEntry(leafName, $1);"""),
-                path,
-                options);
+        return runVoid(() -> executeJs(FileSystemJS.Opfs.class).opfsRemoveEntry(path, options));
     }
 
     CompletableFuture<Void> opfsClear() {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        """
-                const root = await navigator.storage.getDirectory();
-                for await (const [name] of root.entries()) {
-                    await root.removeEntry(name, {recursive: true});
-                }"""));
+        return runVoid(() -> executeJs(FileSystemJS.Opfs.class).opfsClear());
     }
 
     CompletableFuture<FileSystemDirectoryHandle> showDirectoryPicker(DirectoryPickerOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(RESOLVE_START_IN
-                                + """
-
-                        const handles = [await window.showDirectoryPicker(opts)];
-                        """
-                                + REGISTER_HANDLES),
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Picker.class)
+                .showDirectoryPicker(options)
                 .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
                 .thenApply(infos -> infos.stream()
                         .map(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this))
@@ -417,80 +204,35 @@ class JsBridge implements Serializable {
                         .orElseThrow()));
     }
 
-    /**
-     * JS snippet that registers a single handle and returns its metadata.
-     * Expects a {@code handle} variable to be in scope.
-     */
-    private static final String REGISTER_SINGLE_HANDLE =
-            """
-            const id = String(this.__fsApiNextId++);
-            this.__fsApiHandles.set(id, handle);
-            return {id: id, name: handle.name, kind: handle.kind};""";
-
     CompletableFuture<FileSystemFileHandle> getFileHandle(String dirHandleId, String name, GetHandleOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(requireHandle("dir", "$0")
-                                + """
-                                const handle = await dir.getFileHandle($1, $2);
-                                """
-                                + REGISTER_SINGLE_HANDLE),
-                        dirHandleId,
-                        name,
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .getFileHandle(dirHandleId, name, options)
                 .toCompletableFuture(new TypeReference<HandleInfo>() {})
                 .thenApply(info -> new FileSystemFileHandle(info.id(), info.name(), this)));
     }
 
     CompletableFuture<FileSystemDirectoryHandle> getDirectoryHandle(
             String dirHandleId, String name, GetHandleOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(requireHandle("dir", "$0")
-                                + """
-                                const handle = await dir.getDirectoryHandle($1, $2);
-                                """
-                                + REGISTER_SINGLE_HANDLE),
-                        dirHandleId,
-                        name,
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .getDirectoryHandle(dirHandleId, name, options)
                 .toCompletableFuture(new TypeReference<HandleInfo>() {})
                 .thenApply(info -> new FileSystemDirectoryHandle(info.id(), info.name(), this)));
     }
 
     CompletableFuture<Void> removeEntry(String dirHandleId, String name, RemoveEntryOptions options) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(requireHandle("dir", "$0") + "await dir.removeEntry($1, $2);"),
-                dirHandleId,
-                name,
-                options);
+        return runVoid(() -> executeJs(FileSystemJS.Handle.class).removeEntry(dirHandleId, name, options));
     }
 
     CompletableFuture<Optional<List<String>>> resolve(String dirHandleId, String childHandleId) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("dir", "$0")
-                                        + requireHandle("child", "$1")
-                                        + """
-                                const path = await dir.resolve(child);
-                                return path;"""),
-                        dirHandleId,
-                        childHandleId)
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .resolve(dirHandleId, childHandleId)
                 .toCompletableFuture(new TypeReference<List<String>>() {})
                 .thenApply(Optional::ofNullable));
     }
 
     CompletableFuture<List<FileSystemHandle>> entries(String dirHandleId) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("dir", "$0")
-                                        + """
-                                const result = [];
-                                for await (const [name, handle] of dir.entries()) {
-                                    const id = String(this.__fsApiNextId++);
-                                    this.__fsApiHandles.set(id, handle);
-                                    result.push({id: id, name: handle.name, kind: handle.kind});
-                                }
-                                return result;"""),
-                        dirHandleId)
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .entries(dirHandleId)
                 .toCompletableFuture(new TypeReference<List<HandleInfo>>() {})
                 .thenApply(infos -> infos.stream()
                         .map(info -> {
@@ -503,20 +245,8 @@ class JsBridge implements Serializable {
     }
 
     CompletableFuture<FileData> getFile(String handleId) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("h", "$0")
-                                        + """
-                                const file = await h.getFile();
-                                const buf = await file.arrayBuffer();
-                                const bytes = new Uint8Array(buf);
-                                let binary = '';
-                                for (let i = 0; i < bytes.length; i++) {
-                                    binary += String.fromCharCode(bytes[i]);
-                                }
-                                return {name: file.name, size: file.size, type: file.type,
-                                    lastModified: file.lastModified, content: btoa(binary)};"""),
-                        handleId)
+        return mapErrors(executeJs(FileSystemJS.Handle.class)
+                .getFile(handleId)
                 .toCompletableFuture(JsonNode.class)
                 .thenApply(node -> new FileData(
                         node.path("name").asString(),
@@ -527,58 +257,31 @@ class JsBridge implements Serializable {
     }
 
     CompletableFuture<FileSystemWritableFileStream> createWritable(String handleId, WritableOptions options) {
-        return mapErrors(executeJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("h", "$0")
-                                        + """
-                                const writable = await h.createWritable($1);
-                                const id = String(this.__fsApiNextWritableId++);
-                                this.__fsApiWritables.set(id, writable);
-                                return id;"""),
-                        handleId,
-                        options)
+        return mapErrors(executeJs(FileSystemJS.Writable.class)
+                .createWritable(handleId, options)
                 .toCompletableFuture(String.class)
                 .thenApply(streamId -> new FileSystemWritableFileStream(streamId, this)));
     }
 
     CompletableFuture<Void> writableWriteText(String streamId, String text) {
-        return executeVoidJs(JS_TRY_CATCH.formatted(requireWritable("w", "$0") + "await w.write($1);"), streamId, text);
+        return runVoid(() -> executeJs(FileSystemJS.Writable.class).writableWriteText(streamId, text));
     }
 
     CompletableFuture<Void> writableWriteBytes(String streamId, byte[] data) {
         String base64 = Base64.getEncoder().encodeToString(data);
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        requireWritable("w", "$0")
-                                + """
-                        const binary = atob($1);
-                        const bytes = new Uint8Array(binary.length);
-                        for (let i = 0; i < binary.length; i++) {
-                            bytes[i] = binary.charCodeAt(i);
-                        }
-                        await w.write(bytes);"""),
-                streamId,
-                base64);
+        return runVoid(() -> executeJs(FileSystemJS.Writable.class).writableWriteBytes(streamId, base64));
     }
 
     CompletableFuture<Void> writableSeek(String streamId, long position) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(requireWritable("w", "$0") + "await w.seek($1);"), streamId, (double) position);
+        return runVoid(() -> executeJs(FileSystemJS.Writable.class).writableSeek(streamId, (double) position));
     }
 
     CompletableFuture<Void> writableTruncate(String streamId, long size) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(requireWritable("w", "$0") + "await w.truncate($1);"), streamId, (double) size);
+        return runVoid(() -> executeJs(FileSystemJS.Writable.class).writableTruncate(streamId, (double) size));
     }
 
     CompletableFuture<Void> writableClose(String streamId) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(
-                        requireWritable("w", "$0")
-                                + """
-                        await w.close();
-                        this.__fsApiWritables.delete($0);"""),
-                streamId);
+        return runVoid(() -> executeJs(FileSystemJS.Writable.class).writableClose(streamId));
     }
 
     private static final AtomicLong ATTR_COUNTER = new AtomicLong();
@@ -586,84 +289,27 @@ class JsBridge implements Serializable {
     CompletableFuture<Void> uploadTo(String handleId, UploadHandler handler) {
         String attr = "__fsApiUpload_" + ATTR_COUNTER.getAndIncrement();
         element().setAttribute(attr, handler);
-        return executeVoidJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("h", "$0")
-                                        + """
-                                const file = await h.getFile();
-                                const formData = new FormData();
-                                formData.append('file', file, file.name);
-                                const url = this.getAttribute($1);
-                                const response = await fetch(url, {method: 'POST', body: formData});
-                                if (!response.ok) {
-                                    throw new Error('NotAllowedError: Upload failed with status ' + response.status);
-                                }"""),
-                        handleId,
-                        attr)
+        return runVoid(() -> executeJs(FileSystemJS.Handle.class).uploadTo(handleId, attr))
                 .whenComplete((result, error) -> element().removeAttribute(attr));
     }
 
     CompletableFuture<Void> downloadFrom(String handleId, DownloadHandler handler) {
         String attr = "__fsApiDownload_" + ATTR_COUNTER.getAndIncrement();
         element().setAttribute(attr, handler);
-        return executeVoidJs(
-                        JS_TRY_CATCH.formatted(
-                                requireHandle("h", "$0")
-                                        + """
-                                const url = this.getAttribute($1);
-                                const response = await fetch(url);
-                                if (!response.ok) {
-                                    throw new Error('NotAllowedError: Download failed with status ' + response.status);
-                                }
-                                const writable = await h.createWritable();
-                                const reader = response.body.getReader();
-                                while (true) {
-                                    const {done, value} = await reader.read();
-                                    if (done) break;
-                                    await writable.write(value);
-                                }
-                                await writable.close();"""),
-                        handleId,
-                        attr)
+        return runVoid(() -> executeJs(FileSystemJS.Handle.class).downloadFrom(handleId, attr))
                 .whenComplete((result, error) -> element().removeAttribute(attr));
     }
 
-    /**
-     * JS snippet that triggers a browser download from a file handle
-     * variable {@code h}. Uses {@code $1} as the download name with a
-     * fallback to the file's own name.
-     */
-    private static final String JS_SAVE_TO_DEVICE =
-            """
-            const file = await h.getFile();
-            const url = URL.createObjectURL(file);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = $1 || file.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);""";
-
     CompletableFuture<Void> saveToDevice(String handleId, String downloadName) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(requireHandle("h", "$0") + JS_SAVE_TO_DEVICE), handleId, downloadName);
+        return runVoid(() -> executeJs(FileSystemJS.Handle.class).saveToDevice(handleId, downloadName));
     }
 
     CompletableFuture<Void> opfsSaveToDevice(String path, String downloadName) {
-        return executeVoidJs(
-                JS_TRY_CATCH.formatted(opfsNavigateToParent("{}")
-                        + """
-                        const h = await dir.getFileHandle(leafName);
-                        """
-                        + JS_SAVE_TO_DEVICE),
-                path,
-                downloadName);
+        return runVoid(() -> executeJs(FileSystemJS.Opfs.class).opfsSaveToDevice(path, downloadName));
     }
 
     void releaseHandle(String handleId) {
-        ensureInitialized();
-        element().executeJs("this.__fsApiHandles.delete($0);", handleId);
+        executeJs(FileSystemJS.Handle.class).releaseHandle(handleId);
     }
 
     String getHandleId(FileSystemHandle handle) {
@@ -672,16 +318,19 @@ class JsBridge implements Serializable {
 
     private void ensureInitialized() {
         if (!initialized) {
-            element()
-                    .executeJs(
-                            """
-                            this.__fsApiHandles = this.__fsApiHandles || new Map();
-                            this.__fsApiNextId = this.__fsApiNextId || 0;
-                            this.__fsApiWritables = this.__fsApiWritables || new Map();
-                            this.__fsApiNextWritableId = this.__fsApiNextWritableId || 0;""");
-            detachRegistration = component.addDetachListener(event -> cleanup());
-            initialized = true;
+            initialize();
         }
+    }
+
+    /**
+     * Initializes the client-side registries and registers the detach
+     * listener. Subclasses may override this method to avoid executing
+     * JavaScript.
+     */
+    void initialize() {
+        element().executeJs(FileSystemJS.Lifecycle.class).initialize();
+        detachRegistration = component.addDetachListener(event -> cleanup());
+        initialized = true;
     }
 
     /**
@@ -692,22 +341,24 @@ class JsBridge implements Serializable {
      * the bridge so that it re-initializes on the next operation, supporting
      * component re-attach scenarios.
      */
-    private void cleanup() {
-        element()
-                .executeJs(
-                        """
-                        if (this.__fsApiWritables) {
-                            for (const w of this.__fsApiWritables.values()) {
-                                try { w.close(); } catch(e) {}
-                            }
-                            this.__fsApiWritables.clear();
-                        }
-                        if (this.__fsApiHandles) { this.__fsApiHandles.clear(); }""");
+    void cleanup() {
+        executeJs(FileSystemJS.Lifecycle.class).cleanup();
         initialized = false;
         if (detachRegistration != null) {
             detachRegistration.remove();
             detachRegistration = null;
         }
+    }
+
+    /**
+     * Runs a JavaScript call that returns no value and maps errors to the
+     * appropriate Java exception type.
+     *
+     * @param call a supplier that returns the pending JS result to await
+     * @return a future that completes when the call finishes
+     */
+    private CompletableFuture<Void> runVoid(Supplier<PendingJavaScriptResult> call) {
+        return mapErrors(call.get().toCompletableFuture(String.class).thenApply(ignored -> null));
     }
 
     /**

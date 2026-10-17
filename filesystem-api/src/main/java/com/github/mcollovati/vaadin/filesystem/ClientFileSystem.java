@@ -66,9 +66,7 @@ public final class ClientFileSystem implements Serializable {
      *         API is available in the browser
      */
     public CompletableFuture<Boolean> isSupported() {
-        return getBridge()
-                .executeJs("return typeof window.showOpenFilePicker === 'function';")
-                .toCompletableFuture(Boolean.class);
+        return getBridge().isSupported();
     }
 
     // -- Open & Read --
